@@ -1,9 +1,12 @@
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export const API_ENDPOINTS = {
     BANNERS: '/marketing/banners',
     AUTH: {
         SYNC: '/auth/firebase-sync',
         ME: '/auth/profile',
     },
+    SETTINGS: '/settings',
     PRODUCTS: {
         LIST: '/products',
         SEARCH: '/products/search',
@@ -20,4 +23,5 @@ export const API_ENDPOINTS = {
         NEWSLETTER: '/marketing/newsletter/subscribe'
     },
     COUPONS: '/marketing/coupons/validate',
+
 };

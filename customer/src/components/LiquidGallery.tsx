@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+
+import { Product } from '../types';
+import { API_ENDPOINTS } from '../config/api.config';
+import api from '../services/api.service';
 
 const organicShapes = [
     "50% 50% 40% 60% / 60% 50% 60% 40%", // Blob 1
@@ -9,15 +13,17 @@ const organicShapes = [
     "40% 60% 70% 30% / 40% 50% 60% 50%", // Blob 4
 ];
 
-import { products } from '../data/products';
-import { Product } from '../types';
-
 interface ProductCardProps extends Product {
     index: number;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ id, title, code, price, image, index }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ id, title, name, code, price, sale_price, base_price, image, featured_image, index }) => {
     const shape = organicShapes[index % organicShapes.length];
+
+    // Handle different field names from backend/frontend mismatch
+    const displayTitle = name || title;
+    const displayImage = featured_image || image;
+    const displayPrice = sale_price ? `₹${sale_price}` : (base_price ? `₹${base_price}` : price);
 
     return (
         <Link to={`/product/${id}`}>
@@ -35,8 +41,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ id, title, code, price, image
                         className="w-full h-full bg-stone-200 overflow-hidden relative shadow-inner bg-gradient-to-br from-stone-200 to-stone-300"
                     >
                         <img
-                            src={image}
-                            alt={title}
+                            src={displayImage}
+                            alt={displayTitle}
                             className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700"
                         />
                         {/* Glossy Overlay for "Liquid" feel */}
@@ -46,10 +52,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ id, title, code, price, image
                 </div>
 
                 <div className="space-y-1">
-                    <h3 className="text-xs font-bold tracking-widest text-stone-800 uppercase group-hover:text-ruvera-gold transition-colors">{title}</h3>
+                    <h3 className="text-xs font-bold tracking-widest text-stone-800 uppercase group-hover:text-ruvera-gold transition-colors">{displayTitle}</h3>
                     <div className="flex flex-col gap-0.5">
-                        <p className="text-[10px] text-stone-500 tracking-wider">| CODE: {code} |</p>
-                        <p className="text-[10px] text-stone-800 font-medium tracking-wider">PRICE: {price}</p>
+                        {code && <p className="text-[10px] text-stone-500 tracking-wider">| CODE: {code} |</p>}
+                        <p className="text-[10px] text-stone-800 font-medium tracking-wider">PRICE: {displayPrice}</p>
                     </div>
                 </div>
             </motion.div>
@@ -58,7 +64,38 @@ const ProductCard: React.FC<ProductCardProps> = ({ id, title, code, price, image
 }
 
 const LiquidGallery: React.FC = () => {
-    // Products imported from data file
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await api.get(API_ENDPOINTS.PRODUCTS.LIST);
+                if (response.data) {
+                    // Handle paginated response: {total, pages, currentPage, data: [...]}
+                    const productsData = response.data.data || response.data;
+                    setProducts(Array.isArray(productsData) ? productsData : []);
+                }
+            } catch (error) {
+                console.error("Failed to fetch products for gallery", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
+    if (loading) {
+        return <div className="py-20 text-center text-stone-400 font-serif">Loading collection...</div>;
+    }
+
+    // Defensive check: ensure products is an array
+    const safeProducts = Array.isArray(products) ? products : [];
+
+    if (safeProducts.length === 0) {
+        return null;
+    }
 
     return (
         <div className="relative pb-40 px-8 pt-10">
@@ -80,11 +117,11 @@ const LiquidGallery: React.FC = () => {
                         </motion.h2>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-y-16 gap-x-4">
-                            {products.slice(0, 4).map((p, i) => (
-                                <ProductCard key={i} index={i} {...p} />
+                            {safeProducts.slice(0, 4).map((p, i) => (
+                                <ProductCard key={p.id || i} index={i} {...p} />
                             ))}
-                            {products.slice(4, 8).map((p, i) => (
-                                <ProductCard key={i + 4} index={i + 4} {...p} />
+                            {safeProducts.slice(4, 8).map((p, i) => (
+                                <ProductCard key={p.id || i + 4} index={i + 4} {...p} />
                             ))}
                         </div>
                     </div>

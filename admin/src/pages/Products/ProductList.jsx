@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, Filter } from 'lucide-react';
 import api from '../../services/api';
+import { useSettings } from '../../contexts/SettingsContext';
 
 import Pagination from '../../components/Pagination';
 
@@ -13,6 +14,7 @@ export default function ProductList() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const itemsPerPage = 10;
+    const { settings } = useSettings();
 
     useEffect(() => {
         loadProducts(currentPage);
@@ -21,7 +23,8 @@ export default function ProductList() {
     const loadProducts = async (page) => {
         try {
             setLoading(true);
-            const response = await api.get(`/products?page=${page}&limit=${itemsPerPage}`);
+            // Request all products (both active and inactive) for admin view
+            const response = await api.get(`/products?page=${page}&limit=${itemsPerPage}&status=all`);
             if (response.data.data) {
                 const mappedProducts = response.data.data.map(product => ({
                     ...product,
@@ -129,7 +132,7 @@ export default function ProductList() {
                                             </div>
                                         </td>
                                         <td className="p-4 text-sm text-stone-600 font-mono">{product.code}</td>
-                                        <td className="p-4 text-sm font-medium text-midnight">${product.price.toLocaleString()}</td>
+                                        <td className="p-4 text-sm font-medium text-midnight">{settings.currency_symbol}{product.price.toLocaleString()}</td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.status === 'Active'
                                                 ? 'bg-emerald-100 text-emerald-800'

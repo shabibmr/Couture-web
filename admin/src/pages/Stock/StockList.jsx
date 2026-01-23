@@ -8,6 +8,7 @@ export default function StockList() {
     const [inventory, setInventory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         fetchInventory();
@@ -17,22 +18,28 @@ export default function StockList() {
         try {
             setLoading(true);
             const response = await api.get('/inventory');
+
             // Map API response to component structure
-            const mappedInventory = response.data.map(item => ({
-                id: item.id, // Inventory ID
-                variant_id: item.variant_id,
-                product: item.ProductVariant?.Product?.name || 'Unknown Product',
-                variant: `${item.ProductVariant?.Color?.name || ''} / ${item.ProductVariant?.Size?.name || ''}`,
-                sku: item.ProductVariant?.sku || 'N/A',
-                quantity: item.quantity,
-                reserved: item.reserved_quantity || 0,
-                lowThreshold: item.low_stock_threshold,
-                isDirty: false
-            }));
-            setInventory(mappedInventory);
-            setLoading(false);
+            if (response.data && Array.isArray(response.data)) {
+                const mappedInventory = response.data.map(item => ({
+                    id: item.id, // Inventory ID
+                    variant_id: item.variant_id,
+                    product: item.ProductVariant?.Product?.name || 'Unknown Product',
+                    variant: `${item.ProductVariant?.Color?.name || ''} / ${item.ProductVariant?.Size?.name || ''}`,
+                    sku: item.ProductVariant?.sku || 'N/A',
+                    quantity: item.quantity,
+                    reserved: item.reserved_quantity || 0,
+                    lowThreshold: item.low_stock_threshold,
+                    isDirty: false
+                }));
+                setInventory(mappedInventory);
+            } else {
+                setInventory([]);
+            }
         } catch (error) {
             console.error('Error fetching inventory:', error);
+            // Optionally set error state for a toast notification here if needed
+        } finally {
             setLoading(false);
         }
     };
@@ -56,9 +63,10 @@ export default function StockList() {
             setInventory(prev => prev.map(item =>
                 item.id === id ? { ...item, isDirty: false } : item
             ));
-            // Show success toast
+            alert('Stock updated successfully'); // Simple alert for now, can be replaced with custom toast
         } catch (error) {
             console.error('Error updating stock:', error);
+            alert('Failed to update stock');
         }
     };
 
@@ -103,6 +111,15 @@ export default function StockList() {
             <div className="bg-white rounded-xl shadow-sm border border-stone-100 overflow-hidden">
                 {loading ? (
                     <div className="p-12 text-center text-stone-400">Loading inventory...</div>
+                ) : filteredInventory.length === 0 ? (
+                    <div className="p-12 text-center text-stone-500">
+                        <p className="font-medium text-lg mb-1">No inventory items found</p>
+                        <p className="text-sm text-stone-400">
+                            {inventory.length === 0
+                                ? 'Add products with sizes to see them here.'
+                                : 'No items match your search.'}
+                        </p>
+                    </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">

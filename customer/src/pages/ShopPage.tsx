@@ -16,7 +16,7 @@ const organicShapes = [
 ];
 
 const ShopPage: React.FC = () => {
-    const { toggleWishlist, isInWishlist } = useShop();
+    const { toggleWishlist, isInWishlist, formatPrice } = useShop();
     const [products, setProducts] = React.useState<Product[]>([]);
     const [categories, setCategories] = React.useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
@@ -40,7 +40,9 @@ const ShopPage: React.FC = () => {
             } else {
                 response = await api.get(API_ENDPOINTS.PRODUCTS.LIST);
             }
-            setProducts(response.data);
+            // Handle paginated response: {total, pages, currentPage, data: [...]}
+            const productsData = response.data.data || response.data;
+            setProducts(Array.isArray(productsData) ? productsData : []);
         } catch (err: any) {
             console.error("Fetch products error:", err);
             setError(err.response?.data?.message || 'Failed to connect to the server');
@@ -151,7 +153,7 @@ const ShopPage: React.FC = () => {
                     <>
                         {/* Products Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-20 gap-x-12">
-                            {products
+                            {(Array.isArray(products) ? products : [])
                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                 .map((product, index) => {
                                     const shape = organicShapes[index % organicShapes.length];
@@ -160,7 +162,7 @@ const ShopPage: React.FC = () => {
                                     // Map backend fields to UI expectations
                                     const displayTitle = product.name || product.title;
                                     const displayImage = product.featured_image || product.image;
-                                    const displayPrice = product.sale_price ? `₹${product.sale_price.toLocaleString('en-IN')}` : (product.base_price ? `₹${product.base_price.toLocaleString('en-IN')}` : product.price);
+                                    const displayPrice = product.sale_price ? formatPrice(product.sale_price) : (product.base_price ? formatPrice(product.base_price) : (typeof product.price === 'number' ? formatPrice(product.price) : product.price));
                                     const displayId = product.slug || product.id;
 
                                     return (
@@ -213,7 +215,7 @@ const ShopPage: React.FC = () => {
                         </div>
 
                         {/* Pagination */}
-                        {products.length > itemsPerPage && (
+                        {Array.isArray(products) && products.length > itemsPerPage && (
                             <div className="mt-20 flex items-center justify-center gap-2">
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}

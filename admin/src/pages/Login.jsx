@@ -41,7 +41,7 @@ export default function Login() {
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
                             <input
-                                type="email"
+                                type="text"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-stone-200 rounded-lg focus:ring-1 focus:ring-ruvera-gold focus:border-ruvera-gold outline-none"

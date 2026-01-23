@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Eye, DollarSign } from 'lucide-react';
+import { Search, Filter, Eye } from 'lucide-react';
 
 import Pagination from '../../components/Pagination';
 import api from '../../services/api';
+
+import { formatCurrency } from '../../utils/currency';
 
 export default function PaymentList() {
     const [payments, setPayments] = useState([]);
@@ -110,7 +112,7 @@ export default function PaymentList() {
                                                 {payment.orderId}
                                             </Link>
                                         </td>
-                                        <td className="p-4 font-medium text-midnight">${payment.amount.toLocaleString()}</td>
+                                        <td className="p-4 font-medium text-midnight">{formatCurrency(payment.amount)}</td>
                                         <td className="p-4 text-stone-600">{payment.gateway}</td>
                                         <td className="p-4 text-stone-500 text-sm">{payment.date}</td>
                                         <td className="p-4">

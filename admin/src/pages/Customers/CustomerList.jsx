@@ -4,6 +4,8 @@ import { Search, Filter, Mail, Phone, MapPin, ChevronRight, Star } from 'lucide-
 import Pagination from '../../components/Pagination';
 import api from '../../services/api';
 
+import { formatCurrency } from '../../utils/currency';
+
 export default function CustomerList() {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -135,14 +137,14 @@ export default function CustomerList() {
                                 <div className="flex items-center gap-8 mt-4 md:mt-0 w-full md:w-auto justify-between md:justify-end">
                                     <div className="text-right hidden md:block">
                                         <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Total Spent</p>
-                                        <p className="font-medium text-midnight">${customer.totalSpent.toLocaleString()}</p>
+                                        <p className="font-medium text-midnight">{formatCurrency(customer.totalSpent)}</p>
                                     </div>
                                     <div className="text-right hidden md:block">
                                         <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Orders</p>
                                         <p className="font-medium text-midnight">{customer.ordersCount}</p>
                                     </div>
                                     <div className="text-right md:hidden">
-                                        <p className="font-medium text-midnight">${customer.totalSpent.toLocaleString()}</p>
+                                        <p className="font-medium text-midnight">{formatCurrency(customer.totalSpent)}</p>
                                         <p className="text-xs text-stone-400">{customer.ordersCount} Orders</p>
                                     </div>
 

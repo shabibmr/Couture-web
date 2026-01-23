@@ -5,7 +5,7 @@ import { ShoppingBag, X } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 const WishlistPage: React.FC = () => {
-    const { wishlist, removeFromWishlist, addToCart } = useShop();
+    const { wishlist, removeFromWishlist, addToCart, formatPrice } = useShop();
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
@@ -75,7 +75,7 @@ const WishlistPage: React.FC = () => {
                                             </h3>
                                         </Link>
                                         <p className="text-xs font-bold tracking-widest text-stone-400 uppercase mt-1">
-                                            {typeof product.price === 'number' ? `₹${product.price.toLocaleString('en-IN')}` : product.price}
+                                            {typeof product.price === 'number' ? formatPrice(product.price) : product.price}
                                         </p>
                                     </div>
                                 </motion.div>

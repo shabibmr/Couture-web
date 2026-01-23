@@ -21,7 +21,7 @@ const SearchResultsPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q') || '';
 
-    const { toggleWishlist, isInWishlist } = useShop();
+    const { toggleWishlist, isInWishlist, formatPrice } = useShop();
     const [products, setProducts] = useState<Product[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -310,8 +310,8 @@ const SearchResultsPage: React.FC = () => {
                                         className="w-full"
                                     />
                                     <div className="flex justify-between text-sm text-stone-600">
-                                        <span>₹{priceRange[0].toLocaleString('en-IN')}</span>
-                                        <span>₹{priceRange[1].toLocaleString('en-IN')}</span>
+                                        <span>{formatPrice(priceRange[0])}</span>
+                                        <span>{formatPrice(priceRange[1])}</span>
                                     </div>
                                 </div>
                             </div>
@@ -355,9 +355,14 @@ const SearchResultsPage: React.FC = () => {
                             const displayTitle = (product as any).name || product.title;
                             const displayImage = (product as any).featured_image || product.image;
                             const displayPrice = (product as any).sale_price
-                                ? `₹${(product as any).sale_price.toLocaleString('en-IN')}`
-                                : ((product as any).base_price ? `₹${(product as any).base_price.toLocaleString('en-IN')}` : product.price);
+                                ? formatPrice((product as any).sale_price)
+                                : ((product as any).base_price ? formatPrice((product as any).base_price) : (typeof product.price === 'number' ? formatPrice(product.price) : product.price));
                             const displayId = (product as any).slug || product.id;
+
+                            // Check if product has any stock across all variants
+                            const hasStock = (product as any).variants?.some((v: any) =>
+                                v.Inventory && (v.Inventory.quantity - v.Inventory.reserved_quantity) > 0
+                            ) ?? true; // Default to true if no variant info
 
                             return (
                                 <motion.div
@@ -390,6 +395,13 @@ const SearchResultsPage: React.FC = () => {
                                                         className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                                                     />
                                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+
+                                                    {/* Sold Out Badge */}
+                                                    {!hasStock && (
+                                                        <div className="absolute top-4 left-4 bg-stone-900/90 text-white px-3 py-1 text-xs uppercase tracking-widest font-medium">
+                                                            Sold Out
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 

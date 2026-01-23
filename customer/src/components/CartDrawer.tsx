@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const CartDrawer: React.FC = () => {
-    const { cart, isCartOpen, setIsCartOpen, removeFromCart } = useShop();
+    const { cart, isCartOpen, setIsCartOpen, removeFromCart, formatPrice } = useShop();
     const { user, signInWithGoogle } = useAuth();
     const navigate = useNavigate();
 
@@ -70,7 +70,7 @@ const CartDrawer: React.FC = () => {
                                                 <p className="text-xs text-stone-600 mt-1">Size: M</p>
                                             </div>
                                             <div className="flex justify-between items-end">
-                                                <span className="text-sm font-medium text-stone-900">{item.price}</span>
+                                                <span className="text-sm font-medium text-stone-900">{typeof item.price === 'number' ? formatPrice(item.price) : item.price}</span>
                                                 <button
                                                     onClick={() => removeFromCart(index)}
                                                     className="text-[10px] uppercase tracking-wider text-stone-400 hover:text-red-400 transition-colors"
@@ -87,7 +87,7 @@ const CartDrawer: React.FC = () => {
                         <div className="p-6 border-t border-stone-100 space-y-4">
                             <div className="flex justify-between items-center mb-6">
                                 <span className="font-serif text-lg text-stone-600">Subtotal</span>
-                                <span className="font-medium text-xl text-stone-900">₹0.00</span>
+                                <span className="font-medium text-xl text-stone-900">{formatPrice(cart.reduce((acc, item) => acc + (typeof item.price === 'number' ? item.price : 0), 0))}</span>
                             </div>
                             <button
                                 onClick={() => {

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard, ShoppingBag, Code } from 'lucide-react';
 
+import { formatCurrency } from '../../utils/currency';
+
 export default function PaymentDetail() {
     const { id } = useParams();
     const [payment, setPayment] = useState(null);
@@ -62,7 +64,7 @@ export default function PaymentDetail() {
                     <div className="space-y-4">
                         <div className="flex justify-between border-b border-stone-50 pb-2">
                             <span className="text-stone-500">Amount</span>
-                            <span className="font-medium text-xl text-midnight">${payment.amount.toFixed(2)}</span>
+                            <span className="font-medium text-xl text-midnight">{formatCurrency(payment.amount)}</span>
                         </div>
                         <div className="flex justify-between border-b border-stone-50 pb-2">
                             <span className="text-stone-500">Status</span>

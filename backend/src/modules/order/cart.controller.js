@@ -3,6 +3,7 @@ import CartItem from './models/cart_item.model.js';
 import ProductVariant from '../catalog/models/product_variant.model.js';
 import Product from '../catalog/models/product.model.js';
 import ProductImage from '../catalog/models/product_image.model.js';
+import Inventory from '../inventory/models/inventory.model.js';
 
 export const getCart = async (req, res) => {
     try {
@@ -46,7 +47,43 @@ export const addToCart = async (req, res) => {
         const customer_id = req.user.id;
         const { variant_id, quantity } = req.body;
 
+        // Validate quantity
+        if (!quantity || quantity <= 0) {
+            return res.status(400).json({ message: 'Invalid quantity' });
+        }
+
+        // Check inventory availability
+        const inventory = await Inventory.findOne({
+            where: { variant_id }
+        });
+
+        if (!inventory) {
+            return res.status(400).json({ message: 'Product variant not found' });
+        }
+
+        // Calculate available stock
+        const availableStock = inventory.quantity - inventory.reserved_quantity;
+
+        // Get current cart quantity for this variant
         let cart = await Cart.findOne({ where: { customer_id } });
+        let currentCartQuantity = 0;
+
+        if (cart) {
+            const existingItem = await CartItem.findOne({
+                where: { cart_id: cart.id, variant_id }
+            });
+            currentCartQuantity = existingItem ? existingItem.quantity : 0;
+        }
+
+        // Check if requested quantity exceeds available stock
+        const totalRequestedQuantity = currentCartQuantity + quantity;
+        if (totalRequestedQuantity > availableStock) {
+            return res.status(400).json({
+                message: `Insufficient stock. Available: ${availableStock}, Already in cart: ${currentCartQuantity}`
+            });
+        }
+
+        // Create cart if doesn't exist
         if (!cart) {
             cart = await Cart.create({ customer_id });
         }

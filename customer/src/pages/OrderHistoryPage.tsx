@@ -5,9 +5,7 @@ import { ChevronRight, Clock } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 const OrderHistoryPage: React.FC = () => {
-    const { orders } = useShop();
-
-    const formatPrice = (num: number) => "₹" + num.toLocaleString('en-IN');
+    const { orders, formatPrice } = useShop();
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">

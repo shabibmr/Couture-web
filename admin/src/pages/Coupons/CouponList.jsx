@@ -4,6 +4,8 @@ import { Search, Plus, Edit2, Trash2, Ticket, Calendar } from 'lucide-react';
 
 import api from '../../services/api';
 
+import { formatCurrency } from '../../utils/currency';
+
 export default function CouponList() {
     const [coupons, setCoupons] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -91,8 +93,8 @@ export default function CouponList() {
 
                             <h3 className="text-xl font-serif text-midnight mb-1">{coupon.code}</h3>
                             <p className="text-stone-500 text-sm mb-4">
-                                {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `$${coupon.value} OFF`}
-                                {coupon.minOrder > 0 && ` on orders over $${coupon.minOrder}`}
+                                {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `${formatCurrency(coupon.value)} OFF`}
+                                {coupon.minOrder > 0 && ` on orders over ${formatCurrency(coupon.minOrder)}`}
                             </p>
 
                             <div className="space-y-2 text-sm text-stone-600 border-t border-stone-100 pt-4">

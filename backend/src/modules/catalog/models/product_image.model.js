@@ -17,7 +17,7 @@ const ProductImage = sequelize.define('ProductImage', {
         }
     },
     image_url: {
-        type: DataTypes.TEXT,
+        type: DataTypes.TEXT('long'),
         allowNull: false,
     },
     sort_order: {
@@ -26,8 +26,8 @@ const ProductImage = sequelize.define('ProductImage', {
     },
 }, {
     tableName: 'product_images',
-    tableName: 'product_images',
     timestamps: true,
+    updatedAt: false,
     underscored: true,
 });
 

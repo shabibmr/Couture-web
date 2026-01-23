@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Upload, X } from 'lucide-react';
 import api from '../../services/api';
+import { useSettings } from '../../contexts/SettingsContext';
 
 export default function ProductEditor() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { settings } = useSettings();
     const isEditing = !!id;
     const [loading, setLoading] = useState(isEditing);
 
@@ -15,10 +17,12 @@ export default function ProductEditor() {
         code: '',
         description: '',
         sizes: [],
-        status: 'Active',
         category: '',
         mainImage: '',
-        additionalImages: ['', '', ''] // Array for 3 additional images
+        additionalImages: ['', '', ''], // Array for 3 additional images
+        is_active: true,
+        is_new_arrival: false,
+        is_featured: false
     });
 
     const [categories, setCategories] = useState([]);
@@ -53,13 +57,15 @@ export default function ProductEditor() {
                             price: product.base_price,
                             code: product.slug, // Using slug as code for now
                             description: product.description || '',
-                            sizes: [], // Variant data mapping needed if implemented
-                            status: product.is_active ? 'Active' : 'Draft',
+                            sizes: product.variants?.map(v => v.Size?.name).filter(Boolean) || [],
                             category: product.category_id || '',
                             mainImage: product.featured_image || '',
                             additionalImages: product.images && product.images.length > 0
                                 ? product.images.map(img => img.image_url)
-                                : ['', '', '']
+                                : ['', '', ''],
+                            is_active: product.is_active !== undefined ? product.is_active : true,
+                            is_new_arrival: product.is_new_arrival || false,
+                            is_featured: product.is_featured || false
                         });
 
                         // Fill remaining slots if less than 3 images
@@ -84,8 +90,11 @@ export default function ProductEditor() {
     }, [id, isEditing]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
     };
 
     const toggleSize = (size) => {
@@ -155,7 +164,9 @@ export default function ProductEditor() {
                 name: formData.title, // Backend expects 'name' field
                 base_price: parseFloat(formData.price),
                 category_id: formData.category,
-                is_active: formData.status === 'Active'
+                is_active: formData.is_active,
+                is_new_arrival: formData.is_new_arrival,
+                is_featured: formData.is_featured
             };
 
             if (isEditing) {
@@ -215,7 +226,7 @@ export default function ProductEditor() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Price (USD)</label>
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Price ({settings.currency_code})</label>
                                     <input
                                         type="number"
                                         name="price"
@@ -388,17 +399,50 @@ export default function ProductEditor() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Status</label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 focus:border-ruvera-gold outline-none"
-                            >
-                                <option value="Active">Active</option>
-                                <option value="Draft">Draft</option>
-                                <option value="Out of Stock">Out of Stock</option>
-                            </select>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-4">Settings</label>
+                            <div className="space-y-4">
+                                <label className="flex items-center justify-between p-3 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-50 transition-colors">
+                                    <span className="font-medium text-midnight">Active Status</span>
+                                    <div className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            name="is_active"
+                                            checked={formData.is_active}
+                                            onChange={handleChange}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-midnight"></div>
+                                    </div>
+                                </label>
+
+                                <label className="flex items-center justify-between p-3 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-50 transition-colors">
+                                    <span className="font-medium text-midnight">New Arrival</span>
+                                    <div className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            name="is_new_arrival"
+                                            checked={formData.is_new_arrival}
+                                            onChange={handleChange}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-midnight"></div>
+                                    </div>
+                                </label>
+
+                                <label className="flex items-center justify-between p-3 border border-stone-200 rounded-lg cursor-pointer hover:bg-stone-50 transition-colors">
+                                    <span className="font-medium text-midnight">Featured Product</span>
+                                    <div className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            name="is_featured"
+                                            checked={formData.is_featured}
+                                            onChange={handleChange}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-midnight"></div>
+                                    </div>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, MapPin, Package, Calendar, Clock, Star } from 'lucide-react';
 import { getCustomerById } from '../../data/mockCustomers';
 
+import { formatCurrency } from '../../utils/currency';
+
 export default function CustomerDetail() {
     const { id } = useParams();
     const [customer, setCustomer] = useState(null);
@@ -74,7 +76,7 @@ export default function CustomerDetail() {
                     <div className="flex flex-col gap-4 min-w-[200px] border-l border-stone-100 pl-8">
                         <div>
                             <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">Lifetime Value</p>
-                            <p className="text-2xl font-serif text-midnight">${customer.totalSpent.toLocaleString()}</p>
+                            <p className="text-2xl font-serif text-midnight">{formatCurrency(customer.totalSpent)}</p>
                         </div>
                         <div>
                             <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">Engagment</p>
@@ -117,7 +119,7 @@ export default function CustomerDetail() {
                                         }`}>
                                         {order.status}
                                     </span>
-                                    <p className="font-serif text-lg text-midnight w-24 text-right">${order.total.toLocaleString()}</p>
+                                    <p className="font-serif text-lg text-midnight w-24 text-right">{formatCurrency(order.total)}</p>
                                     <button className="text-stone-400 hover:text-midnight transition-colors">
                                         <ArrowLeft className="rotate-180" size={20} />
                                     </button>

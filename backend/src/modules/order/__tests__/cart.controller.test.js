@@ -16,11 +16,16 @@ const mockProductVariant = {};
 const mockProduct = {};
 const mockProductImage = {};
 
+const mockInventory = {
+    findOne: jest.fn(),
+};
+
 jest.unstable_mockModule('../models/cart.model.js', () => ({ default: mockCart }));
 jest.unstable_mockModule('../models/cart_item.model.js', () => ({ default: mockCartItem }));
 jest.unstable_mockModule('../../catalog/models/product_variant.model.js', () => ({ default: mockProductVariant }));
 jest.unstable_mockModule('../../catalog/models/product.model.js', () => ({ default: mockProduct }));
 jest.unstable_mockModule('../../catalog/models/product_image.model.js', () => ({ default: mockProductImage }));
+jest.unstable_mockModule('../../inventory/models/inventory.model.js', () => ({ default: mockInventory }));
 
 const {
     getCart,
@@ -94,6 +99,14 @@ describe('Cart Controller', () => {
             const cart = { id: 1 };
             mockCart.findOne.mockResolvedValue(cart);
 
+            // Mock inventory with sufficient stock
+            const inventory = { quantity: 10, reserved_quantity: 0 };
+            mockInventory.findOne.mockResolvedValue(inventory);
+
+            // Mock existing cart item
+            const existingItem = { quantity: 1 };
+            mockCartItem.findOne.mockResolvedValueOnce(existingItem);
+
             const item = {
                 id: 10,
                 quantity: 1,
@@ -106,6 +119,66 @@ describe('Cart Controller', () => {
             expect(item.quantity).toBe(3); // 1 + 2
             expect(item.save).toHaveBeenCalled();
             expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Item added to cart' }));
+        });
+
+        it('should fail if inventory not found', async () => {
+            req.body = { variant_id: 'v1', quantity: 2 };
+            mockInventory.findOne.mockResolvedValue(null);
+
+            await addToCart(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Product variant not found' });
+        });
+
+        it('should fail if insufficient stock', async () => {
+            req.body = { variant_id: 'v1', quantity: 5 };
+            const cart = { id: 1 };
+            mockCart.findOne.mockResolvedValue(cart);
+
+            // Mock inventory with limited stock
+            const inventory = { quantity: 3, reserved_quantity: 0 };
+            mockInventory.findOne.mockResolvedValue(inventory);
+
+            // No existing cart item
+            mockCartItem.findOne.mockResolvedValue(null);
+
+            await addToCart(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+                message: expect.stringContaining('Insufficient stock')
+            }));
+        });
+
+        it('should fail if adding to cart exceeds available stock', async () => {
+            req.body = { variant_id: 'v1', quantity: 2 };
+            const cart = { id: 1 };
+            mockCart.findOne.mockResolvedValue(cart);
+
+            // Mock inventory
+            const inventory = { quantity: 5, reserved_quantity: 0 };
+            mockInventory.findOne.mockResolvedValue(inventory);
+
+            // Mock existing cart item with 4 already in cart
+            const existingItem = { quantity: 4 };
+            mockCartItem.findOne.mockResolvedValue(existingItem);
+
+            await addToCart(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+                message: expect.stringContaining('Insufficient stock')
+            }));
+        });
+
+        it('should validate quantity is positive', async () => {
+            req.body = { variant_id: 'v1', quantity: -1 };
+
+            await addToCart(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Invalid quantity' });
         });
     });
 
