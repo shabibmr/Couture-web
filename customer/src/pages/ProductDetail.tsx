@@ -6,6 +6,7 @@ import { useShop } from '../context/ShopContext';
 import { Product } from '../types';
 import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
+import { useAuthGuard } from '../hooks/useAuthGuard';
 
 // Organic shapes for related products
 const organicShapes = [
@@ -27,6 +28,7 @@ interface Review {
 const ProductDetail: React.FC = () => {
     const { id: productSlug } = useParams<{ id: string }>();
     const { addToCart, toggleWishlist, isInWishlist, formatPrice } = useShop();
+    const { requireAuth } = useAuthGuard();
     const [selectedSize, setSelectedSize] = useState<string>('M');
     const [product, setProduct] = useState<Product | null>(null);
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -38,10 +40,37 @@ const ProductDetail: React.FC = () => {
 
     const averageRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
 
+    // Derive sizes from variants if not explicit
+    const derivedSizes = React.useMemo(() => {
+        if (!product) return ['S', 'M', 'L', 'XL'];
+        if (product.sizes && product.sizes.length > 0) return product.sizes;
+        if (product.variants && product.variants.length > 0) {
+            // Extract unique size codes/names from variants
+            const sizes = Array.from(new Set(product.variants.map(v => v.Size?.code || v.Size?.name).filter(Boolean)));
+            return sizes.length > 0 ? sizes : ['S', 'M', 'L', 'XL'];
+        }
+        return ['S', 'M', 'L', 'XL'];
+    }, [product]);
+
+    const displaySizes = derivedSizes;
+
+    // Initialize selected size
+    React.useEffect(() => {
+        if (selectedSize === 'M' && displaySizes.length > 0 && !displaySizes.includes('M')) {
+            setSelectedSize(displaySizes[0] as string);
+        }
+    }, [displaySizes, selectedSize]);
+
     React.useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const response = await api.get(API_ENDPOINTS.PRODUCTS.BY_SLUG(productSlug || ''));
+                // Check if productSlug is a UUID
+                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productSlug || '');
+                const endpoint = isUUID
+                    ? API_ENDPOINTS.PRODUCTS.BY_ID(productSlug || '')
+                    : API_ENDPOINTS.PRODUCTS.BY_SLUG(productSlug || '');
+
+                const response = await api.get(endpoint);
                 setProduct(response.data);
 
                 // Fetch related products (same category)
@@ -92,13 +121,16 @@ const ProductDetail: React.FC = () => {
     const displayPrice = product.sale_price ? formatPrice(product.sale_price) : (product.base_price ? formatPrice(product.base_price) : (typeof product.price === 'number' ? formatPrice(product.price) : product.price));
     const displayCode = product.code || product.slug || 'N/A';
     const displayDescription = product.description || 'No description available.';
-    const displaySizes = product.sizes && product.sizes.length > 0 ? product.sizes : ['S', 'M', 'L', 'XL'];
 
     // Calculate stock for selected size
     const getStockForSize = (sizeName: string) => {
         if (!product.variants || product.variants.length === 0) return 0;
 
-        const variant = product.variants.find(v => v.Size?.name === sizeName);
+        // flexible matching for size name or code
+        const variant = product.variants.find(v =>
+            v.Size?.name === sizeName || v.Size?.code === sizeName
+        );
+
         if (!variant || !variant.Inventory) return 0;
 
         return variant.Inventory.quantity - variant.Inventory.reserved_quantity;
@@ -117,11 +149,14 @@ const ProductDetail: React.FC = () => {
                         animate={{ opacity: 1, x: 0 }}
                         className="w-full h-full bg-stone-200 overflow-hidden relative shadow-2xl"
                     >
-                        <img
-                            src={displayImage}
-                            alt={displayTitle}
-                            className="w-full h-full object-cover"
-                        />
+                        <picture className="w-full h-full block">
+                            <source srcSet={displayImage?.replace(/\.(png|jpg|jpeg)$/i, '.webp')} type="image/webp" />
+                            <img
+                                src={displayImage}
+                                alt={displayTitle}
+                                className="w-full h-full object-cover"
+                            />
+                        </picture>
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
                     </motion.div>
 
@@ -195,10 +230,10 @@ const ProductDetail: React.FC = () => {
                                             onClick={() => setSelectedSize(size)}
                                             disabled={isSizeOutOfStock}
                                             className={`w-12 h-12 flex items-center justify-center border rounded-full text-sm transition-all duration-300 relative ${isSizeOutOfStock
-                                                    ? 'border-stone-200 text-stone-300 cursor-not-allowed opacity-50'
-                                                    : selectedSize === size
-                                                        ? 'border-stone-900 bg-stone-900 text-white'
-                                                        : 'border-stone-300 text-stone-600 hover:border-stone-900'
+                                                ? 'border-stone-200 text-stone-300 cursor-not-allowed opacity-50'
+                                                : selectedSize === size
+                                                    ? 'border-stone-900 bg-stone-900 text-white'
+                                                    : 'border-stone-300 text-stone-600 hover:border-stone-900'
                                                 }`}
                                         >
                                             {size}
@@ -224,8 +259,8 @@ const ProductDetail: React.FC = () => {
                                 onClick={() => addToCart({ ...product, selectedSize } as any)}
                                 disabled={isOutOfStock}
                                 className={`px-8 py-4 flex-1 flex items-center justify-center gap-3 tracking-[0.2em] uppercase text-xs font-medium transition-colors duration-500 shadow-xl ${isOutOfStock
-                                        ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
-                                        : 'bg-stone-900 text-white hover:bg-ruvera-gold'
+                                    ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                                    : 'bg-stone-900 text-white hover:bg-ruvera-gold'
                                     }`}
                             >
                                 <ShoppingBag size={18} />
@@ -233,7 +268,10 @@ const ProductDetail: React.FC = () => {
                             </button>
 
                             <button
-                                onClick={() => toggleWishlist(product)}
+                                onClick={() => {
+                                    if (!requireAuth({ action: 'wishlist' })) return;
+                                    toggleWishlist(product);
+                                }}
                                 className={`p-4 border border-stone-200 hover:border-stone-900 transition-colors ${isWishlisted ? 'text-red-500' : 'text-stone-400'}`}
                             >
                                 <Heart size={20} fill={isWishlisted ? "currentColor" : "none"} />
@@ -348,6 +386,7 @@ const ProductDetail: React.FC = () => {
                                             <button
                                                 onClick={(e) => {
                                                     e.preventDefault();
+                                                    if (!requireAuth({ action: 'wishlist' })) return;
                                                     toggleWishlist(relatedProduct);
                                                 }}
                                                 className={`absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-md transition-all duration-300 ${isRelatedWishlisted ? 'text-red-500' : 'text-stone-400 hover:text-stone-900'
@@ -362,11 +401,14 @@ const ProductDetail: React.FC = () => {
                                                         style={{ borderRadius: shape }}
                                                         className="w-full h-full bg-stone-200 overflow-hidden relative shadow-lg group-hover:shadow-xl transition-all duration-500"
                                                     >
-                                                        <img
-                                                            src={relatedImage}
-                                                            alt={relatedTitle}
-                                                            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                                                        />
+                                                        <picture className="w-full h-full block">
+                                                            <source srcSet={relatedImage?.replace(/\.(png|jpg|jpeg)$/i, '.webp')} type="image/webp" />
+                                                            <img
+                                                                src={relatedImage}
+                                                                alt={relatedTitle}
+                                                                className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                                                            />
+                                                        </picture>
                                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                                                     </div>
                                                 </div>

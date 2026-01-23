@@ -26,3 +26,6 @@ dist-ssr
 # Local process tracking
 .pids
 
+# Product images
+prodimages/
+

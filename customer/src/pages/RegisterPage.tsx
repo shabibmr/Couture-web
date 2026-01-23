@@ -1,15 +1,29 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import GoogleSignInButton from '../components/GoogleSignInButton';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { user } = useAuth();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
         confirmPassword: '',
     });
+
+    // Get return URL from location state
+    const from = (location.state as any)?.from || '/';
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user) {
+            navigate(from, { replace: true });
+        }
+    }, [user, navigate, from]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -18,8 +32,9 @@ const RegisterPage: React.FC = () => {
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         console.log('Register attempt:', formData);
-        // Mock authentication - Redirect to home
-        navigate('/');
+        // TODO: Implement actual registration
+        // For now, redirect to return URL
+        navigate(from, { replace: true });
     };
 
     return (
@@ -103,6 +118,14 @@ const RegisterPage: React.FC = () => {
                         Create Account
                     </button>
                 </form>
+
+                <div className="my-6 flex items-center justify-between">
+                    <div className="h-px bg-stone-200 flex-1"></div>
+                    <span className="px-4 text-xs font-bold text-stone-400 uppercase tracking-widest">Or continue with</span>
+                    <div className="h-px bg-stone-200 flex-1"></div>
+                </div>
+
+                <GoogleSignInButton />
 
                 <div className="mt-8 text-center text-sm text-stone-500">
                     Already have an account?{' '}

@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
         SEARCH: '/products/search',
         CATEGORIES: '/products/categories',
         BY_SLUG: (slug: string) => `/products/${slug}`,
+        BY_ID: (id: string) => `/products/id/${id}`,
         REVIEWS: (id: string) => `/products/${id}/reviews`,
     },
     CART: '/cart',

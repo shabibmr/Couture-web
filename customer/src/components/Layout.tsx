@@ -52,15 +52,22 @@ const Layout: React.FC = () => {
                         )}
 
                         {/* Profile - Only when signed in */}
-                        {user && (
+                        {user ? (
                             <Link to="/profile" className="hover:text-ruvera-gold transition-colors hidden md:block">
-                                <User size={18} strokeWidth={1.5} />
+                                {user.photoURL ? (
+                                    <img
+                                        src={user.photoURL}
+                                        alt={user.displayName || 'Profile'}
+                                        className="w-8 h-8 rounded-full border border-stone-200 p-0.5 object-cover"
+                                    />
+                                ) : (
+                                    <User size={18} strokeWidth={1.5} />
+                                )}
                             </Link>
-                        )}
-
-                        {/* Sign In - Only when guest */}
-                        {!user && (
-                            <Link to="/login" className="hover:text-ruvera-gold transition-colors hidden md:block">
+                        ) : (
+                            /* Sign In - Only when guest */
+                            <Link to="/login" className="hover:text-ruvera-gold transition-colors hidden md:block group flex items-center gap-2">
+                                <span className="text-xs uppercase tracking-widest hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity -mr-1">Sign In</span>
                                 <User size={18} strokeWidth={1.5} />
                             </Link>
                         )}

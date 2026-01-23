@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { auth, googleProvider } from '../firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { API_ENDPOINTS } from '../config/api.config';
+import { API_ENDPOINTS, API_BASE_URL } from '../config/api.config';
 import { AuthContextType, User as AppUser } from '../types';
 
 
@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 try {
                     // Sync with Backend
                     const idToken = await firebaseUser.getIdToken();
-                    const response = await fetch(API_ENDPOINTS.AUTH.SYNC, {
+                    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.SYNC}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ idToken })

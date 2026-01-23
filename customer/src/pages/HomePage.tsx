@@ -37,7 +37,7 @@ const HomePage: React.FC = () => {
     }, []);
 
     // Default values if no banner is found
-    const bgImage = banner?.image_url || "https://images.unsplash.com/photo-1490481651871-ab56bbb10a99?q=80&w=2070&auto=format&fit=crop";
+    const bgImage = banner?.image_url || "/hero_image.png";
     const subtitle = banner?.description || "Everyday / Everywhere 2026";
     const link = banner?.link_url || "/shop";
 
@@ -76,11 +76,14 @@ const HomePage: React.FC = () => {
                     style={{ opacity }}
                     className="relative h-[60vh] md:h-screen w-full overflow-hidden order-1 md:order-2"
                 >
-                    <img
-                        src={bgImage}
-                        alt="Hero"
-                        className="w-full h-full object-cover object-center"
-                    />
+                    <picture className="w-full h-full block">
+                        <source srcSet={bgImage?.replace(/\.(png|jpg|jpeg)$/i, '.webp')} type="image/webp" />
+                        <img
+                            src={bgImage}
+                            alt="Hero"
+                            className="w-full h-full object-cover object-center"
+                        />
+                    </picture>
                 </motion.div>
 
                 {/* Floating Scroll Indicator (Optional, centered or left) */}

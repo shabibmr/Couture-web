@@ -6,9 +6,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CartItem } from '../types';
 import api from '../services/api.service';
 import { API_ENDPOINTS } from '../config/api.config';
+import { useAuthGuard } from '../hooks/useAuthGuard';
 
 const CartPage: React.FC = () => {
     const { cart, removeFromCart, formatPrice } = useShop();
+    const { requireAuth } = useAuthGuard();
     const navigate = useNavigate();
 
     // Coupon State
@@ -58,6 +60,8 @@ const CartPage: React.FC = () => {
     };
 
     const handleCheckout = () => {
+        // Check authentication before proceeding to checkout
+        if (!requireAuth({ returnTo: '/checkout' })) return;
         navigate('/checkout', { state: { subtotal, tax, discount, total } });
     };
 

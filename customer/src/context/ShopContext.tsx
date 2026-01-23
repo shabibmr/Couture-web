@@ -46,16 +46,46 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
             if (user?.backendToken) {
                 setIsLoading(true);
                 setError(null);
+
+                // Store guest cart before fetching backend cart
+                const guestCart = [...cart];
+
                 try {
                     // Fetch Cart
                     try {
                         const cartRes = await api.get(API_ENDPOINTS.CART);
                         if (cartRes.data && cartRes.data.items) {
-                            setCart(cartRes.data.items.map((item: any) => ({
+                            const backendCart = cartRes.data.items.map((item: any) => ({
                                 ...item.Product,
                                 quantity: item.quantity,
                                 selectedSize: item.size
-                            })));
+                            }));
+
+                            // Merge guest cart with backend cart
+                            // Create a map of backend items by product ID
+                            const backendCartMap = new Map(
+                                backendCart.map((item: any) => [item.id, item])
+                            );
+
+                            // Add guest cart items that don't exist in backend
+                            const mergedCart = [...backendCart];
+                            for (const guestItem of guestCart) {
+                                if (!backendCartMap.has(guestItem.id)) {
+                                    mergedCart.push(guestItem);
+                                    // Sync guest item to backend
+                                    try {
+                                        await api.post(API_ENDPOINTS.CART, {
+                                            product_id: guestItem.id,
+                                            quantity: guestItem.quantity || 1,
+                                            size: guestItem.selectedSize || 'M'
+                                        });
+                                    } catch (syncError) {
+                                        console.error("Error syncing guest cart item to backend:", syncError);
+                                    }
+                                }
+                            }
+
+                            setCart(mergedCart);
                         }
                     } catch (e) {
                         console.error("Error fetching cart", e);
@@ -99,8 +129,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                     setIsLoading(false);
                 }
             } else {
-                // Clear state on logout or if no token
-                setCart([]);
+                // Clear backend state on logout, but keep local cart for guest users
                 setWishlist([]);
                 setOrders([]);
             }

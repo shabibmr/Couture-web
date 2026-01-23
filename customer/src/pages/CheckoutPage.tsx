@@ -4,7 +4,8 @@ import { Lock, ArrowLeft, CreditCard } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { Order as OrderType } from '../types';
-import axios from 'axios';
+import api from '../services/api.service';
+import { API_ENDPOINTS } from '../config/api.config';
 
 // Add Window interface for Razorpay
 declare global {
@@ -56,21 +57,17 @@ const CheckoutPage: React.FC = () => {
 
         try {
             // 1. Create Order in Backend
-            const orderResponse = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/orders`, {
+            const orderResponse = await api.post(API_ENDPOINTS.ORDERS, {
                 shipping_address: formData,
                 billing_address: formData, // Simplified for now
                 // items are implicitly taken from cart on backend or we send them
-            }, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('backend_token')}` }
             });
 
             const backendOrderId = orderResponse.data.order.id;
 
             // 2. Create Razorpay Order
-            const razorpayOrderResponse = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/payment/create-order`, {
+            const razorpayOrderResponse = await api.post('/payment/create-order', {
                 order_id: backendOrderId
-            }, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('backend_token')}` }
             });
 
             const { id: rzpOrderId, amount, currency: rzpCurrency, key_id } = razorpayOrderResponse.data;
@@ -86,12 +83,10 @@ const CheckoutPage: React.FC = () => {
                 handler: async (response: any) => {
                     try {
                         // 4. Verify Payment in Backend
-                        const verifyResponse = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/payment/verify`, {
+                        const verifyResponse = await api.post('/payment/verify', {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature
-                        }, {
-                            headers: { Authorization: `Bearer ${localStorage.getItem('backend_token')}` }
                         });
 
                         if (verifyResponse.data.status === 'success') {

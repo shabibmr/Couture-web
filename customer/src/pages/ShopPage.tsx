@@ -6,6 +6,7 @@ import { useShop } from '../context/ShopContext';
 import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
 import { Product } from '../types';
+import { useAuthGuard } from '../hooks/useAuthGuard';
 
 // Determine shape based on index
 const organicShapes = [
@@ -17,6 +18,7 @@ const organicShapes = [
 
 const ShopPage: React.FC = () => {
     const { toggleWishlist, isInWishlist, formatPrice } = useShop();
+    const { requireAuth } = useAuthGuard();
     const [products, setProducts] = React.useState<Product[]>([]);
     const [categories, setCategories] = React.useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
@@ -177,6 +179,7 @@ const ShopPage: React.FC = () => {
                                                 <button
                                                     onClick={(e) => {
                                                         e.preventDefault();
+                                                        if (!requireAuth({ action: 'wishlist' })) return;
                                                         toggleWishlist(product);
                                                     }}
                                                     className={`absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-md transition-all duration-300 ${isWishlisted ? 'text-red-500' : 'text-stone-400 hover:text-stone-900'}`}

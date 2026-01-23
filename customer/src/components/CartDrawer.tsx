@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuthGuard } from '../hooks/useAuthGuard';
 
 const CartDrawer: React.FC = () => {
     const { cart, isCartOpen, setIsCartOpen, removeFromCart, formatPrice } = useShop();
-    const { user, signInWithGoogle } = useAuth();
+    const { requireAuth } = useAuthGuard();
     const navigate = useNavigate();
 
     return (
@@ -91,16 +91,13 @@ const CartDrawer: React.FC = () => {
                             </div>
                             <button
                                 onClick={() => {
-                                    if (!user) {
-                                        signInWithGoogle();
-                                    } else {
-                                        setIsCartOpen(false);
-                                        navigate('/cart');
-                                    }
+                                    if (!requireAuth({ returnTo: '/cart' })) return;
+                                    setIsCartOpen(false);
+                                    navigate('/cart');
                                 }}
                                 className="block w-full text-center bg-stone-900 text-[#FDFBF7] py-4 text-sm font-medium tracking-[0.2em] uppercase hover:bg-ruvera-gold transition-colors duration-500"
                             >
-                                {user ? "Checkout" : "Sign In to Checkout"}
+                                Checkout
                             </button>
                         </div>
                     </motion.div>
