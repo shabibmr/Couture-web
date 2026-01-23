@@ -8,7 +8,7 @@ import api from '../services/api.service';
 import { API_ENDPOINTS } from '../config/api.config';
 
 const CartPage: React.FC = () => {
-    const { cart, removeFromCart } = useShop();
+    const { cart, removeFromCart, formatPrice } = useShop();
     const navigate = useNavigate();
 
     // Coupon State
@@ -28,10 +28,7 @@ const CartPage: React.FC = () => {
     const tax = subtotal * 0.18; // Assuming 18% tax
     const total = subtotal + tax - discount;
 
-    // Helper to format back to currency
-    const formatPrice = (num: number): string => {
-        return "₹" + num.toLocaleString('en-IN');
-    };
+
 
     const handleApplyCoupon = async () => {
         if (!couponCode) return;
@@ -110,7 +107,7 @@ const CartPage: React.FC = () => {
                                         <div className="flex justify-between items-start mb-2">
                                             <h3 className="text-lg md:text-xl font-serif text-stone-900">{item.name || item.title}</h3>
                                             <span className="text-lg font-medium text-stone-900">
-                                                {typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : item.price}
+                                                {formatPrice(parsePrice(item.price))}
                                             </span>
                                         </div>
                                         <p className="text-xs tracking-widest text-stone-500 uppercase">Code: {item.code || item.slug || 'N/A'}</p>

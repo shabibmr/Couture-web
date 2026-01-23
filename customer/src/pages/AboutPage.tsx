@@ -17,7 +17,7 @@ const AboutPage: React.FC = () => {
         {
             icon: Users,
             title: 'Customer First',
-            description: 'Your satisfaction drives everything we do. We're dedicated to providing exceptional service and experiences.'
+            description: 'Your satisfaction drives everything we do. We\'re dedicated to providing exceptional service and experiences.'
         },
         {
             icon: Award,

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, ShoppingBag, Users, TrendingUp, ArrowRight, Clock } from 'lucide-react';
+import { IndianRupee, ShoppingBag, Users, TrendingUp, ArrowRight, Clock } from 'lucide-react';
 import api from '../services/api';
+
+import { formatCurrency } from '../utils/currency';
 
 const StatCard = ({ label, value, trend, icon, colorClass }) => {
     const Icon = icon;
@@ -89,9 +91,9 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     label="Total Revenue"
-                    value={`$${stats.revenue.toLocaleString()}`}
+                    value={formatCurrency(stats.revenue)}
                     trend={stats.growth}
-                    icon={DollarSign}
+                    icon={IndianRupee}
                     colorClass="bg-gradient-to-br from-midnight to-stone-700"
                 />
                 <StatCard

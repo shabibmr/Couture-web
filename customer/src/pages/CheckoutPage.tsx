@@ -23,7 +23,7 @@ interface CheckoutState {
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { cart, addOrder, clearCart } = useShop();
+    const { cart, addOrder, clearCart, formatPrice, currency: shopCurrency } = useShop();
     const { user } = useAuth();
 
     // Protect Route
@@ -73,13 +73,13 @@ const CheckoutPage: React.FC = () => {
                 headers: { Authorization: `Bearer ${localStorage.getItem('backend_token')}` }
             });
 
-            const { id: rzpOrderId, amount, currency, key_id } = razorpayOrderResponse.data;
+            const { id: rzpOrderId, amount, currency: rzpCurrency, key_id } = razorpayOrderResponse.data;
 
             // 3. Open Razorpay Checkout
             const options = {
                 key: key_id,
                 amount: amount,
-                currency: currency,
+                currency: rzpCurrency,
                 name: 'Ruvera Couture',
                 description: 'Purchase Payment',
                 order_id: rzpOrderId,
@@ -145,7 +145,7 @@ const CheckoutPage: React.FC = () => {
         return <div className="p-20 text-center">Your cart is empty. <button onClick={() => navigate('/shop')} className="text-ruvera-gold underline">Go Shopping</button></div>;
     }
 
-    const formatPrice = (num: number) => "₹" + num.toLocaleString('en-IN');
+
 
     return (
         <div className="bg-beige-bg min-h-screen py-12 px-6">
@@ -219,7 +219,7 @@ const CheckoutPage: React.FC = () => {
                                         <h4 className="font-serif text-sm text-midnight">{item.name || item.title}</h4>
                                         <p className="text-xs text-stone-500">Size: {item.selectedSize || 'M'}</p>
                                         <p className="text-sm font-medium text-stone-800">
-                                            {typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : item.price}
+                                            {typeof item.price === 'number' ? formatPrice(item.price) : item.price}
                                         </p>
                                     </div>
 

@@ -91,7 +91,7 @@ export default function CouponEditor() {
                             onChange={e => setFormData({ ...formData, type: e.target.value })}
                         >
                             <option value="percentage">Percentage (%)</option>
-                            <option value="fixed">Fixed Amount ($)</option>
+                            <option value="fixed">Fixed Amount (₹)</option>
                         </select>
                     </div>
 

@@ -12,7 +12,7 @@ interface TrackingStep {
 
 const OrderTrackingPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const { orders } = useShop();
+    const { orders, formatPrice } = useShop();
     const [order, setOrder] = useState<Order | null | undefined>(null);
 
     useEffect(() => {
@@ -98,7 +98,7 @@ const OrderTrackingPage: React.FC = () => {
                                     <img src={item.image} alt="item" className="w-16 h-20 object-cover bg-stone-200 rounded" />
                                     <div>
                                         <p className="font-medium text-midnight">{item.title}</p>
-                                        <p className="text-sm text-stone-500">{item.price}</p>
+                                        <p className="text-sm text-stone-500">{typeof item.price === 'number' ? formatPrice(item.price) : item.price}</p>
                                     </div>
                                 </div>
                             ))}

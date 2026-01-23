@@ -12,10 +12,20 @@ import { Op } from 'sequelize';
 
 export const getAllProducts = async (req, res) => {
     try {
-        const { page = 1, limit = 10, category_slug, brand_slug, search } = req.query;
+        const { page = 1, limit = 10, category_slug, brand_slug, search, status } = req.query;
         const offset = (page - 1) * limit;
 
-        const where = { is_active: true };
+        const where = {};
+
+        // Status filter logic
+        if (status === 'all') {
+            // No filter on is_active
+        } else if (status === 'inactive') {
+            where.is_active = false;
+        } else {
+            // Default to active only (backward compatibility)
+            where.is_active = true;
+        }
 
         if (search) {
             where[Op.or] = [
@@ -77,6 +87,7 @@ export const getProductById = async (req, res) => {
                     include: [
                         { model: Size, attributes: ['name', 'code'] },
                         { model: Color, attributes: ['name', 'hex_code'] },
+                        { model: Inventory, attributes: ['quantity', 'reserved_quantity'] },
                     ],
                     where: { is_active: true },
                     required: false,
@@ -108,6 +119,7 @@ export const getProductBySlug = async (req, res) => {
                     include: [
                         { model: Size, attributes: ['name', 'code'] },
                         { model: Color, attributes: ['name', 'hex_code'] },
+                        { model: Inventory, attributes: ['quantity', 'reserved_quantity'] },
                     ],
                     where: { is_active: true },
                     required: false,
@@ -128,7 +140,7 @@ export const getProductBySlug = async (req, res) => {
 
 export const createProduct = async (req, res) => {
     try {
-        const { mainImage, additionalImages, ...productData } = req.body;
+        const { mainImage, additionalImages, sizes, ...productData } = req.body;
 
         // Create the product with main image as featured_image
         const product = await Product.create({
@@ -152,6 +164,37 @@ export const createProduct = async (req, res) => {
             await Promise.all(imagePromises);
         }
 
+        // Handle Sizes -> create Variants and Inventory
+        if (sizes && Array.isArray(sizes) && sizes.length > 0) {
+            // Fetch size IDs
+            const sizeRecords = await Size.findAll({
+                where: { name: sizes }
+            });
+
+            for (const size of sizeRecords) {
+                // Generate SKU: CODE-SIZE (e.g., TS-001-S)
+                const variantSku = `${productData.code || 'SKU'}-${size.code || size.name}`;
+
+                // Create Variant
+                const variant = await ProductVariant.create({
+                    product_id: product.id,
+                    sku: variantSku,
+                    size_id: size.id,
+                    color_id: null, // Default to null for now if not handled
+                    variant_price: productData.price || 0,
+                    variant_image: null
+                });
+
+                // Create Inventory
+                await Inventory.create({
+                    variant_id: variant.id,
+                    quantity: 1,
+                    reserved_quantity: 0,
+                    low_stock_threshold: 10
+                });
+            }
+        }
+
         res.status(201).json(product);
     } catch (error) {
         console.error('Error creating product:', error);
@@ -162,7 +205,7 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { mainImage, additionalImages, ...productData } = req.body;
+        const { mainImage, additionalImages, sizes, ...productData } = req.body;
 
         // Find the product
         const product = await Product.findByPk(id);
@@ -194,6 +237,73 @@ export const updateProduct = async (req, res) => {
                 );
 
             await Promise.all(imagePromises);
+        }
+
+        // Handle Sizes Update
+        if (sizes && Array.isArray(sizes)) {
+            // Get existing variants
+            const existingVariants = await ProductVariant.findAll({
+                where: { product_id: id },
+                include: [{ model: Size }]
+            });
+
+            const existingSizeNames = existingVariants.map(v => v.Size?.name).filter(Boolean);
+
+            // 1. Identify Valid Variants (in payload) and New Variants
+            const newSizes = sizes.filter(s => !existingSizeNames.includes(s));
+
+            // 2. Identify Variants to Remove (exits in DB but NOT in payload)
+            // Note: sizes contains Names, existingVariants has Size objects
+            const variantsToRemove = existingVariants.filter(v => !sizes.includes(v.Size?.name));
+
+            // Process Removals
+            for (const variant of variantsToRemove) {
+                try {
+                    // Start transaction if possible, or just sequential
+                    // First try to hard delete
+                    await Inventory.destroy({ where: { variant_id: variant.id } });
+                    await variant.destroy();
+                } catch (delError) {
+                    console.warn(`Could not hard-delete variant ${variant.sku}, falling back to deactivation.`);
+                    // Fallback: Soft delete / Deactivate
+                    await variant.update({ is_active: false });
+                }
+            }
+
+            // Process Additions
+            if (newSizes.length > 0) {
+                const sizeRecords = await Size.findAll({
+                    where: { name: newSizes }
+                });
+
+                for (const size of sizeRecords) {
+                    const variantSku = `${productData.code || product.slug}-${size.code || size.name}`;
+
+                    // Check if sku exists (paranoid check)
+                    let variant = await ProductVariant.findOne({ where: { sku: variantSku } });
+
+                    if (!variant) {
+                        variant = await ProductVariant.create({
+                            product_id: product.id,
+                            sku: variantSku,
+                            size_id: size.id,
+                            color_id: null,
+                            variant_price: productData.price || product.base_price,
+                            variant_image: null
+                        });
+
+                        await Inventory.create({
+                            variant_id: variant.id,
+                            quantity: 1,
+                            reserved_quantity: 0,
+                            low_stock_threshold: 10
+                        });
+                    } else {
+                        // Reactivate if it existed but was inactive
+                        await variant.update({ is_active: true });
+                    }
+                }
+            }
         }
 
         // Fetch updated product with images
@@ -408,7 +518,7 @@ export const addProductVariant = async (req, res) => {
         // Create Inventory Record for this variant
         await Inventory.create({
             variant_id: variant.id,
-            quantity: 0,
+            quantity: 1,
             reserved_quantity: 0,
             low_stock_threshold: 10
         });

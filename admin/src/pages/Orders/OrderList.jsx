@@ -4,6 +4,8 @@ import { Search, Filter, Eye, ArrowUpRight } from 'lucide-react';
 import api from '../../services/api';
 import Pagination from '../../components/Pagination';
 
+import { formatCurrency } from '../../utils/currency';
+
 export default function OrderList() {
     const location = useLocation();
     const [orders, setOrders] = useState([]);
@@ -129,7 +131,7 @@ export default function OrderList() {
                                         <td className="p-4 text-stone-600">{order.customer}</td>
                                         <td className="p-4 text-stone-500 text-sm">{order.date}</td>
                                         <td className="p-4 text-stone-500 text-sm">{order.items} items</td>
-                                        <td className="p-4 font-serif text-midnight">${order.total.toLocaleString()}</td>
+                                        <td className="p-4 font-serif text-midnight">{formatCurrency(order.total)}</td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(order.status)} uppercase tracking-wide`}>
                                                 {order.status}

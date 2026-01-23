@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { Product, CartItem, Order, ShopContextType } from '../types';
+import { Product, CartItem, Order, ShopContextType, Currency } from '../types';
 import { API_ENDPOINTS } from '../config/api.config';
 import { useAuth } from './AuthContext';
 import api from '../services/api.service';
@@ -16,64 +16,93 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [wishlist, setWishlist] = useState<Product[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [currency, setCurrency] = useState<Currency>({ code: 'INR', symbol: '₹' });
 
-    const [orders, setOrders] = useState<Order[]>([
-        {
-            id: 'RUV-8821',
-            date: 'Oct 12, 2024',
-            total: 12500,
-            status: 'Delivered',
-            items: [
-                { title: 'Velvet Evening Gown', price: '₹12,500', image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?q=80&w=2000&auto=format&fit=crop', quantity: 1 }
-            ]
-        }
-    ]);
+    // Fetch Settings
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                // @ts-ignore - API_ENDPOINTS.SETTINGS is dynamically added
+                const res = await api.get(API_ENDPOINTS.SETTINGS || '/settings');
+                if (res.data) {
+                    setCurrency({
+                        code: res.data.site_currency_code || 'INR',
+                        symbol: res.data.site_currency_symbol || '₹'
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     // Sync Cart and Wishlist on login
     useEffect(() => {
         const fetchUserData = async () => {
             if (user?.backendToken) {
+                setIsLoading(true);
+                setError(null);
                 try {
                     // Fetch Cart
-                    const cartRes = await api.get(API_ENDPOINTS.CART);
-                    if (cartRes.data && cartRes.data.items) {
-                        setCart(cartRes.data.items.map((item: any) => ({
-                            ...item.Product,
-                            quantity: item.quantity,
-                            selectedSize: item.size
-                        })));
+                    try {
+                        const cartRes = await api.get(API_ENDPOINTS.CART);
+                        if (cartRes.data && cartRes.data.items) {
+                            setCart(cartRes.data.items.map((item: any) => ({
+                                ...item.Product,
+                                quantity: item.quantity,
+                                selectedSize: item.size
+                            })));
+                        }
+                    } catch (e) {
+                        console.error("Error fetching cart", e);
                     }
 
                     // Fetch Wishlist
-                    const wishlistRes = await api.get(API_ENDPOINTS.WISHLIST);
-                    if (wishlistRes.data) {
-                        setWishlist(wishlistRes.data.map((item: any) => item.Product));
+                    try {
+                        const wishlistRes = await api.get(API_ENDPOINTS.WISHLIST);
+                        if (wishlistRes.data) {
+                            setWishlist(wishlistRes.data.map((item: any) => item.Product));
+                        }
+                    } catch (e) {
+                        console.error("Error fetching wishlist", e);
                     }
 
                     // Fetch Orders
-                    const ordersRes = await api.get(API_ENDPOINTS.ORDERS);
-                    if (ordersRes.data) {
-                        setOrders(ordersRes.data.map((order: any) => ({
-                            id: order.order_id,
-                            date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                            total: order.total_amount,
-                            status: order.order_status,
-                            items: order.Items.map((item: any) => ({
-                                title: item.Product?.name || 'Product',
-                                price: item.price,
-                                image: item.Product?.featured_image || '',
-                                quantity: item.quantity
-                            }))
-                        })));
+                    try {
+                        const ordersRes = await api.get(API_ENDPOINTS.ORDERS);
+                        if (ordersRes.data) {
+                            setOrders(ordersRes.data.map((order: any) => ({
+                                id: order.order_id,
+                                date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                                total: order.total_amount,
+                                status: order.order_status,
+                                items: order.Items.map((item: any) => ({
+                                    title: item.Product?.name || 'Product',
+                                    price: item.price,
+                                    image: item.Product?.featured_image || '',
+                                    quantity: item.quantity
+                                }))
+                            })));
+                        }
+                    } catch (e) {
+                        console.error("Error fetching orders", e);
                     }
 
                 } catch (error) {
                     console.error("Error fetching user shop data:", error);
+                    setError("Failed to load user data");
+                } finally {
+                    setIsLoading(false);
                 }
             } else {
                 // Clear state on logout or if no token
                 setCart([]);
                 setWishlist([]);
+                setOrders([]);
             }
         };
 
@@ -136,6 +165,10 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         setOrders([order, ...orders]);
     };
 
+    const formatPrice = (amount: number) => {
+        return `${currency.symbol}${amount.toLocaleString('en-IN')}`;
+    };
+
     const addToWishlist = async (product: Product) => {
         if (!isInWishlist(product.id)) {
             if (user?.backendToken) {
@@ -188,7 +221,9 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
             isInWishlist,
             toggleWishlist,
             orders,
-            addOrder
+            addOrder,
+            currency,
+            formatPrice
         }}>
             {children}
         </ShopContext.Provider>

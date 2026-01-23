@@ -26,7 +26,7 @@ interface Review {
 
 const ProductDetail: React.FC = () => {
     const { id: productSlug } = useParams<{ id: string }>();
-    const { addToCart, toggleWishlist, isInWishlist } = useShop();
+    const { addToCart, toggleWishlist, isInWishlist, formatPrice } = useShop();
     const [selectedSize, setSelectedSize] = useState<string>('M');
     const [product, setProduct] = useState<Product | null>(null);
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -34,32 +34,7 @@ const ProductDetail: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     // Mock reviews (would come from backend in production)
-    const [reviews] = useState<Review[]>([
-        {
-            id: '1',
-            author: 'Priya Sharma',
-            rating: 5,
-            date: '2026-01-15',
-            comment: 'Absolutely stunning piece! The craftsmanship is exceptional and the fit is perfect. Worth every rupee.',
-            verified: true
-        },
-        {
-            id: '2',
-            author: 'Raj Malhotra',
-            rating: 5,
-            date: '2026-01-10',
-            comment: 'Exceeded my expectations. The quality of the fabric and the attention to detail is remarkable.',
-            verified: true
-        },
-        {
-            id: '3',
-            author: 'Ananya Desai',
-            rating: 4,
-            date: '2026-01-08',
-            comment: 'Beautiful design and comfortable to wear. Delivery was prompt and packaging was elegant.',
-            verified: true
-        }
-    ]);
+    const [reviews] = useState<Review[]>([]);
 
     const averageRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
 
@@ -114,10 +89,23 @@ const ProductDetail: React.FC = () => {
     // Map backend fields
     const displayTitle = product.name || product.title;
     const displayImage = product.featured_image || product.image;
-    const displayPrice = product.sale_price ? `₹${product.sale_price}` : (product.base_price ? `₹${product.base_price}` : product.price);
+    const displayPrice = product.sale_price ? formatPrice(product.sale_price) : (product.base_price ? formatPrice(product.base_price) : (typeof product.price === 'number' ? formatPrice(product.price) : product.price));
     const displayCode = product.code || product.slug || 'N/A';
     const displayDescription = product.description || 'No description available.';
     const displaySizes = product.sizes && product.sizes.length > 0 ? product.sizes : ['S', 'M', 'L', 'XL'];
+
+    // Calculate stock for selected size
+    const getStockForSize = (sizeName: string) => {
+        if (!product.variants || product.variants.length === 0) return 0;
+
+        const variant = product.variants.find(v => v.Size?.name === sizeName);
+        if (!variant || !variant.Inventory) return 0;
+
+        return variant.Inventory.quantity - variant.Inventory.reserved_quantity;
+    };
+
+    const selectedSizeStock = getStockForSize(selectedSize);
+    const isOutOfStock = selectedSizeStock <= 0;
 
     return (
         <div className="bg-beige-bg">
@@ -197,19 +185,33 @@ const ProductDetail: React.FC = () => {
                         >
                             <span className="text-xs font-bold uppercase tracking-widest text-stone-400 block mb-4">Select Size</span>
                             <div className="flex gap-4">
-                                {displaySizes.map((size: string) => (
-                                    <button
-                                        key={size}
-                                        onClick={() => setSelectedSize(size)}
-                                        className={`w-12 h-12 flex items-center justify-center border rounded-full text-sm transition-all duration-300 ${selectedSize === size
-                                            ? 'border-stone-900 bg-stone-900 text-white'
-                                            : 'border-stone-300 text-stone-600 hover:border-stone-900'
-                                            }`}
-                                    >
-                                        {size}
-                                    </button>
-                                ))}
+                                {displaySizes.map((size: string) => {
+                                    const sizeStock = getStockForSize(size);
+                                    const isSizeOutOfStock = sizeStock <= 0;
+
+                                    return (
+                                        <button
+                                            key={size}
+                                            onClick={() => setSelectedSize(size)}
+                                            disabled={isSizeOutOfStock}
+                                            className={`w-12 h-12 flex items-center justify-center border rounded-full text-sm transition-all duration-300 relative ${isSizeOutOfStock
+                                                    ? 'border-stone-200 text-stone-300 cursor-not-allowed opacity-50'
+                                                    : selectedSize === size
+                                                        ? 'border-stone-900 bg-stone-900 text-white'
+                                                        : 'border-stone-300 text-stone-600 hover:border-stone-900'
+                                                }`}
+                                        >
+                                            {size}
+                                            {isSizeOutOfStock && (
+                                                <span className="absolute w-full h-0.5 bg-stone-300 rotate-45" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
+                            {selectedSizeStock > 0 && selectedSizeStock <= 5 && (
+                                <p className="text-xs text-orange-600 mt-2">Only {selectedSizeStock} left in stock!</p>
+                            )}
                         </motion.div>
 
                         <motion.div
@@ -220,10 +222,14 @@ const ProductDetail: React.FC = () => {
                         >
                             <button
                                 onClick={() => addToCart({ ...product, selectedSize } as any)}
-                                className="bg-stone-900 text-white px-8 py-4 flex-1 flex items-center justify-center gap-3 tracking-[0.2em] uppercase text-xs font-medium hover:bg-ruvera-gold transition-colors duration-500 shadow-xl"
+                                disabled={isOutOfStock}
+                                className={`px-8 py-4 flex-1 flex items-center justify-center gap-3 tracking-[0.2em] uppercase text-xs font-medium transition-colors duration-500 shadow-xl ${isOutOfStock
+                                        ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                                        : 'bg-stone-900 text-white hover:bg-ruvera-gold'
+                                    }`}
                             >
                                 <ShoppingBag size={18} />
-                                Add to Bag
+                                {isOutOfStock ? 'Sold Out' : 'Add to Bag'}
                             </button>
 
                             <button
@@ -326,8 +332,8 @@ const ProductDetail: React.FC = () => {
                                 const relatedTitle = (relatedProduct as any).name || relatedProduct.title;
                                 const relatedImage = (relatedProduct as any).featured_image || relatedProduct.image;
                                 const relatedPrice = (relatedProduct as any).sale_price
-                                    ? `₹${(relatedProduct as any).sale_price.toLocaleString('en-IN')}`
-                                    : ((relatedProduct as any).base_price ? `₹${(relatedProduct as any).base_price.toLocaleString('en-IN')}` : relatedProduct.price);
+                                    ? formatPrice((relatedProduct as any).sale_price)
+                                    : ((relatedProduct as any).base_price ? formatPrice((relatedProduct as any).base_price) : (typeof relatedProduct.price === 'number' ? formatPrice(relatedProduct.price) : relatedProduct.price));
                                 const relatedId = (relatedProduct as any).slug || relatedProduct.id;
 
                                 return (

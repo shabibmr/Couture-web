@@ -11,6 +11,21 @@ export interface Product {
     image: string;
     featured_image?: string; // Backend uses featured_image
     sizes: string[];
+    variants?: ProductVariant[]; // Include variants with inventory info
+}
+
+export interface ProductVariant {
+    id: string;
+    sku: string;
+    size_id?: string;
+    color_id?: string;
+    variant_price?: number;
+    Size?: { name: string; code: string };
+    Color?: { name: string; hex_code: string };
+    Inventory?: {
+        quantity: number;
+        reserved_quantity: number;
+    };
 }
 
 export interface CartItem extends Product {
@@ -49,6 +64,11 @@ export interface Banner {
     link_url: string;
 }
 
+export interface Currency {
+    code: string;
+    symbol: string;
+}
+
 export interface ShopContextType {
     cart: CartItem[];
     addToCart: (product: Product) => void;
@@ -65,6 +85,8 @@ export interface ShopContextType {
     toggleWishlist: (product: Product) => void;
     orders: Order[];
     addOrder: (order: Order) => void;
+    currency: Currency;
+    formatPrice: (amount: number) => string;
 }
 
 export interface AuthContextType {

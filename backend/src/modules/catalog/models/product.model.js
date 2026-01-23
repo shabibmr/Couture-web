@@ -47,7 +47,7 @@ const Product = sequelize.define('Product', {
         allowNull: true,
     },
     featured_image: {
-        type: DataTypes.TEXT,
+        type: DataTypes.TEXT('long'),
         allowNull: true,
     },
     is_active: {

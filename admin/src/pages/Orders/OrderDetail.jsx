@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Package, User, MapPin, CreditCard, Printer, Truck } from 'lucide-react';
 import api from '../../services/api';
+import { useSettings } from '../../contexts/SettingsContext';
 
 export default function OrderDetail() {
     const { id } = useParams();
+    const { settings } = useSettings();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -106,9 +108,9 @@ export default function OrderDetail() {
                                             <p className="text-xs font-mono text-stone-400 mt-1">SKU: {item.sku}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-medium text-midnight">${item.price.toFixed(2)}</p>
+                                            <p className="font-medium text-midnight">{settings.currency_symbol}{item.price.toFixed(2)}</p>
                                             <p className="text-sm text-stone-500">Qty: {item.quantity}</p>
-                                            <p className="font-medium text-ruvera-gold mt-1">${(item.price * item.quantity).toFixed(2)}</p>
+                                            <p className="font-medium text-ruvera-gold mt-1">{settings.currency_symbol}{(item.price * item.quantity).toFixed(2)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -117,19 +119,19 @@ export default function OrderDetail() {
                         <div className="p-6 bg-stone-50/50 space-y-2">
                             <div className="flex justify-between text-sm text-stone-600">
                                 <span>Subtotal</span>
-                                <span>${order.subtotal.toFixed(2)}</span>
+                                <span>{settings.currency_symbol}{order.subtotal.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm text-stone-600">
                                 <span>Shipping</span>
-                                <span>${order.shipping.toFixed(2)}</span>
+                                <span>{settings.currency_symbol}{order.shipping.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm text-stone-600">
                                 <span>Tax</span>
-                                <span>${order.tax.toFixed(2)}</span>
+                                <span>{settings.currency_symbol}{order.tax.toFixed(2)}</span>
                             </div>
                             <div className="pt-4 border-t border-stone-200 flex justify-between items-center">
                                 <span className="font-serif font-medium text-lg text-midnight">Total</span>
-                                <span className="font-serif font-medium text-lg text-midnight">${order.total.toFixed(2)}</span>
+                                <span className="font-serif font-medium text-lg text-midnight">{settings.currency_symbol}{order.total.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>

@@ -53,7 +53,7 @@ const startServer = async () => {
         await sequelize.authenticate();
         console.log('Database connection established successfully.');
 
-        // Sync models (disable in production or use migrations)
+        // Sync models (disabled - we use SQL scripts for schema management)
         // await sequelize.sync(); 
 
         app.listen(PORT, () => {
