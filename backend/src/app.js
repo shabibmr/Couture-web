@@ -64,4 +64,17 @@ const startServer = async () => {
     }
 };
 
+process.on('exit', (code) => {
+    console.log(`Process exited with code: ${code}`);
+    console.trace('Exit trace');
+});
+
+process.on('SIGTERM', () => {
+    console.log('Received SIGTERM');
+});
+
+process.on('SIGINT', () => {
+    console.log('Received SIGINT');
+});
+
 startServer();
