@@ -1,0 +1,165 @@
+import { jest } from '@jest/globals';
+
+const mockCart = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    toJSON: jest.fn(),
+};
+
+const mockCartItem = {
+    findOrCreate: jest.fn(),
+    findOne: jest.fn(),
+    destroy: jest.fn(),
+};
+
+const mockProductVariant = {};
+const mockProduct = {};
+const mockProductImage = {};
+
+jest.unstable_mockModule('../models/cart.model.js', () => ({ default: mockCart }));
+jest.unstable_mockModule('../models/cart_item.model.js', () => ({ default: mockCartItem }));
+jest.unstable_mockModule('../../catalog/models/product_variant.model.js', () => ({ default: mockProductVariant }));
+jest.unstable_mockModule('../../catalog/models/product.model.js', () => ({ default: mockProduct }));
+jest.unstable_mockModule('../../catalog/models/product_image.model.js', () => ({ default: mockProductImage }));
+
+const {
+    getCart,
+    addToCart,
+    updateCartItem,
+    removeCartItem
+} = await import('../cart.controller.js');
+
+describe('Cart Controller', () => {
+    let req, res;
+
+    beforeEach(() => {
+        req = {
+            user: { id: 1 },
+            body: {},
+            params: {}
+        };
+        res = {
+            json: jest.fn(),
+            status: jest.fn().mockReturnThis(),
+        };
+        jest.clearAllMocks();
+    });
+
+    describe('getCart', () => {
+        it('should return existing cart', async () => {
+            const cart = { id: 1, customer_id: 1, items: [] };
+            mockCart.findOne.mockResolvedValue(cart);
+
+            await getCart(req, res);
+
+            expect(mockCart.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: { customer_id: 1 } }));
+            expect(res.json).toHaveBeenCalledWith(cart);
+        });
+
+        it('should create new cart if not found', async () => {
+            mockCart.findOne.mockResolvedValue(null);
+            const newCart = {
+                id: 2,
+                customer_id: 1,
+                toJSON: jest.fn().mockReturnValue({ id: 2, customer_id: 1 })
+            };
+            mockCart.create.mockResolvedValue(newCart);
+
+            await getCart(req, res);
+
+            expect(mockCart.create).toHaveBeenCalledWith({ customer_id: 1 });
+            expect(res.json).toHaveBeenCalledWith({ id: 2, customer_id: 1, items: [] });
+        });
+    });
+
+    describe('addToCart', () => {
+        it('should add new item to cart', async () => {
+            req.body = { variant_id: 'v1', quantity: 2 };
+            const cart = { id: 1 };
+            mockCart.findOne.mockResolvedValue(cart);
+
+            const item = { id: 10, quantity: 2 };
+            // findOrCreate returns [instance, created]
+            mockCartItem.findOrCreate.mockResolvedValue([item, true]);
+
+            await addToCart(req, res);
+
+            expect(mockCartItem.findOrCreate).toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Item added to cart' }));
+        });
+
+        it('should update quantity if item exists', async () => {
+            req.body = { variant_id: 'v1', quantity: 2 };
+            const cart = { id: 1 };
+            mockCart.findOne.mockResolvedValue(cart);
+
+            const item = {
+                id: 10,
+                quantity: 1,
+                save: jest.fn().mockResolvedValue(true)
+            };
+            mockCartItem.findOrCreate.mockResolvedValue([item, false]);
+
+            await addToCart(req, res);
+
+            expect(item.quantity).toBe(3); // 1 + 2
+            expect(item.save).toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Item added to cart' }));
+        });
+    });
+
+    describe('updateCartItem', () => {
+        it('should update cart item quantity', async () => {
+            req.params.id = 10;
+            req.body = { quantity: 5 };
+            const cart = { id: 1 };
+            mockCart.findOne.mockResolvedValue(cart);
+
+            const item = {
+                id: 10,
+                quantity: 1,
+                save: jest.fn().mockResolvedValue(true)
+            };
+            mockCartItem.findOne.mockResolvedValue(item);
+
+            await updateCartItem(req, res);
+
+            expect(item.quantity).toBe(5);
+            expect(item.save).toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Cart item updated' }));
+        });
+
+        it('should remove item if quantity <= 0', async () => {
+            req.params.id = 10;
+            req.body = { quantity: 0 };
+            const cart = { id: 1 };
+            mockCart.findOne.mockResolvedValue(cart);
+
+            const item = {
+                id: 10,
+                destroy: jest.fn().mockResolvedValue(true)
+            };
+            mockCartItem.findOne.mockResolvedValue(item);
+
+            await updateCartItem(req, res);
+
+            expect(item.destroy).toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Item removed from cart' }));
+        });
+    });
+
+    describe('removeCartItem', () => {
+        it('should remove item', async () => {
+            req.params.id = 10;
+            const cart = { id: 1 };
+            mockCart.findOne.mockResolvedValue(cart);
+            mockCartItem.destroy.mockResolvedValue(1); // 1 row deleted
+
+            await removeCartItem(req, res);
+
+            expect(mockCartItem.destroy).toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith({ message: 'Item removed from cart' });
+        });
+    });
+});
