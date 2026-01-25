@@ -1,10 +1,38 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '../services/api';
 
-const SettingsContext = createContext();
+interface SettingsState {
+    currency_code: string;
+    currency_symbol: string;
+    company_name: string;
+    address_line: string;
+    city: string;
+    state: string;
+    zip: string;
+    phone: string;
+    email: string;
+    shipping_fee: string;
+    free_shipping_threshold: string;
+    tax_rate: string;
+    facebook_url: string;
+    instagram_url: string;
+    twitter_url: string;
+}
 
-export function SettingsProvider({ children }) {
-    const [settings, setSettings] = useState({
+interface SettingsContextValue {
+    settings: SettingsState;
+    loading: boolean;
+    refreshSettings: () => void;
+}
+
+const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
+
+interface SettingsProviderProps {
+    children: ReactNode;
+}
+
+export function SettingsProvider({ children }: SettingsProviderProps) {
+    const [settings, setSettings] = useState<SettingsState>({
         currency_code: 'INR',
         currency_symbol: '₹',
         company_name: '',
@@ -50,7 +78,7 @@ export function SettingsProvider({ children }) {
     );
 }
 
-export function useSettings() {
+export function useSettings(): SettingsContextValue {
     const context = useContext(SettingsContext);
     if (!context) {
         throw new Error('useSettings must be used within SettingsProvider');

@@ -1,8 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+interface ToastData {
+    id: number;
+    message: string;
+    type: ToastType;
+    duration: number;
+}
+
+interface ToastProps {
+    message: string;
+    type?: ToastType;
+    duration?: number;
+    onClose: () => void;
+}
+
+interface ToastContainerProps {
+    toasts: ToastData[];
+    removeToast: (id: number) => void;
+}
 
 let toastId = 0;
 
-const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {
+const Toast = ({ message, type = 'info', duration = 3000, onClose }: ToastProps) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onClose();
@@ -11,7 +32,7 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {
         return () => clearTimeout(timer);
     }, [duration, onClose]);
 
-    const getTypeStyles = () => {
+    const getTypeStyles = (): string => {
         switch (type) {
             case 'success':
                 return 'bg-green-500 text-white';
@@ -40,7 +61,7 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {
     );
 };
 
-const ToastContainer = ({ toasts, removeToast }) => {
+const ToastContainer = ({ toasts, removeToast }: ToastContainerProps) => {
     return (
         <div className="fixed top-4 right-4 z-50 space-y-2">
             {toasts.map((toast) => (
@@ -58,21 +79,21 @@ const ToastContainer = ({ toasts, removeToast }) => {
 
 // Hook to use toast notifications
 export const useToast = () => {
-    const [toasts, setToasts] = useState([]);
+    const [toasts, setToasts] = useState<ToastData[]>([]);
 
-    const addToast = (message, type = 'info', duration = 3000) => {
+    const addToast = (message: string, type: ToastType = 'info', duration: number = 3000) => {
         const id = toastId++;
         setToasts((prev) => [...prev, { id, message, type, duration }]);
     };
 
-    const removeToast = (id) => {
+    const removeToast = (id: number) => {
         setToasts((prev) => prev.filter((toast) => toast.id !== id));
     };
 
-    const showSuccess = (message, duration) => addToast(message, 'success', duration);
-    const showError = (message, duration) => addToast(message, 'error', duration);
-    const showWarning = (message, duration) => addToast(message, 'warning', duration);
-    const showInfo = (message, duration) => addToast(message, 'info', duration);
+    const showSuccess = (message: string, duration?: number) => addToast(message, 'success', duration);
+    const showError = (message: string, duration?: number) => addToast(message, 'error', duration);
+    const showWarning = (message: string, duration?: number) => addToast(message, 'warning', duration);
+    const showInfo = (message: string, duration?: number) => addToast(message, 'info', duration);
 
     return {
         toasts,
