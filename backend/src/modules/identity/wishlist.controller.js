@@ -6,6 +6,8 @@ import ProductImage from '../catalog/models/product_image.model.js';
 export const getWishlist = async (req, res) => {
     try {
         const customer_id = req.user.id;
+        console.log(`[WishlistController] getWishlist called for customer: ${customer_id}`);
+
         let wishlist = await Wishlist.findOne({
             where: { customer_id },
             include: [
@@ -23,13 +25,15 @@ export const getWishlist = async (req, res) => {
         });
 
         if (!wishlist) {
+            console.log(`[WishlistController] No wishlist found for customer ${customer_id}, creating new one`);
             wishlist = await Wishlist.create({ customer_id });
             return res.json({ ...wishlist.toJSON(), items: [] });
         }
 
+        console.log(`[WishlistController] Wishlist found with ${wishlist.items?.length || 0} items`);
         res.json(wishlist);
     } catch (error) {
-        console.error('Error fetching wishlist:', error);
+        console.error('[WishlistController] Error fetching wishlist:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -38,13 +42,16 @@ export const addToWishlist = async (req, res) => {
     try {
         const customer_id = req.user.id;
         const { product_id } = req.body;
+        console.log(`[WishlistController] addToWishlist called:`, { customer_id, product_id });
 
         if (!product_id) {
+            console.log('[WishlistController] Missing product_id in request');
             return res.status(400).json({ message: 'product_id is required' });
         }
 
         let wishlist = await Wishlist.findOne({ where: { customer_id } });
         if (!wishlist) {
+            console.log(`[WishlistController] Creating new wishlist for customer ${customer_id}`);
             wishlist = await Wishlist.create({ customer_id });
         }
 
@@ -54,6 +61,7 @@ export const addToWishlist = async (req, res) => {
         });
 
         if (existingItem) {
+            console.log('[WishlistController] Product already in wishlist');
             return res.status(200).json({ message: 'Product already in wishlist', item: existingItem });
         }
 
@@ -62,9 +70,10 @@ export const addToWishlist = async (req, res) => {
             product_id
         });
 
+        console.log(`[WishlistController] ✓ Product added to wishlist:`, { item_id: item.id });
         res.status(201).json({ message: 'Product added to wishlist', item });
     } catch (error) {
-        console.error('Error adding to wishlist:', error);
+        console.error('[WishlistController] Error adding to wishlist:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -73,9 +82,11 @@ export const removeFromWishlist = async (req, res) => {
     try {
         const customer_id = req.user.id;
         const { id } = req.params; // WishlistItem ID
+        console.log(`[WishlistController] removeFromWishlist called:`, { customer_id, wishlist_item_id: id });
 
         const wishlist = await Wishlist.findOne({ where: { customer_id } });
         if (!wishlist) {
+            console.log('[WishlistController] Wishlist not found for customer');
             return res.status(404).json({ message: 'Wishlist not found' });
         }
 
@@ -84,12 +95,14 @@ export const removeFromWishlist = async (req, res) => {
         });
 
         if (!deleted) {
+            console.log('[WishlistController] Wishlist item not found');
             return res.status(404).json({ message: 'Item not found in wishlist' });
         }
 
+        console.log(`[WishlistController] ✓ Item removed from wishlist`);
         res.json({ message: 'Item removed from wishlist' });
     } catch (error) {
-        console.error('Error removing from wishlist:', error);
+        console.error('[WishlistController] Error removing from wishlist:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

@@ -22,7 +22,8 @@ const Setting = sequelize.define('Setting', {
     }
 }, {
     tableName: 'settings',
-    timestamps: true,
+    timestamps: false,
+    underscored: false,
 });
 
 export default Setting;

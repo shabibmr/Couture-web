@@ -26,7 +26,8 @@ const PaymentGateway = sequelize.define('PaymentGateway', {
     },
 }, {
     tableName: 'payment_gateways',
-    timestamps: true,
+    tableName: 'payment_gateways',
+    timestamps: false,
 });
 
 export default PaymentGateway;

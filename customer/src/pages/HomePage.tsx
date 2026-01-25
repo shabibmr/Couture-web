@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import { Banner } from '../types';
 import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
+import logger from '../utils/logger';
 
 const HomePage: React.FC = () => {
     const heroRef = useRef<HTMLElement>(null);
@@ -18,6 +19,7 @@ const HomePage: React.FC = () => {
     const [banner, setBanner] = React.useState<Banner | null>(null);
 
     React.useEffect(() => {
+        logger.info('Page Mounted: HomePage');
         const fetchBanner = async () => {
             try {
                 const response = await api.get(API_ENDPOINTS.MARKETING.BANNERS, {
@@ -29,7 +31,7 @@ const HomePage: React.FC = () => {
                     setBanner(data[0]);
                 }
             } catch (error) {
-                console.error("Failed to fetch banner:", error);
+                logger.error("Failed to fetch banner", { error });
             }
         };
 
@@ -77,7 +79,7 @@ const HomePage: React.FC = () => {
                     className="relative h-[60vh] md:h-screen w-full overflow-hidden order-1 md:order-2"
                 >
                     <picture className="w-full h-full block">
-                        <source srcSet={bgImage?.replace(/\.(png|jpg|jpeg)$/i, '.webp')} type="image/webp" />
+                        {/* <source srcSet={bgImage?.replace(/\.(png|jpg|jpeg)$/i, '.webp')} type="image/webp" /> */}
                         <img
                             src={bgImage}
                             alt="Hero"

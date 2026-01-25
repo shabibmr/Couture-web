@@ -7,6 +7,7 @@ import { Product } from '../types';
 import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
 import { useAuthGuard } from '../hooks/useAuthGuard';
+import logger from '../utils/logger';
 
 // Organic shapes for related products
 const organicShapes = [
@@ -43,7 +44,7 @@ const ProductDetail: React.FC = () => {
     // Derive sizes from variants if not explicit
     const derivedSizes = React.useMemo(() => {
         if (!product) return ['S', 'M', 'L', 'XL'];
-        if (product.sizes && product.sizes.length > 0) return product.sizes;
+
         if (product.variants && product.variants.length > 0) {
             // Extract unique size codes/names from variants
             const sizes = Array.from(new Set(product.variants.map(v => v.Size?.code || v.Size?.name).filter(Boolean)));
@@ -62,6 +63,7 @@ const ProductDetail: React.FC = () => {
     }, [displaySizes, selectedSize]);
 
     React.useEffect(() => {
+        logger.info('Page Mounted: ProductDetail', { productSlug });
         const fetchProduct = async () => {
             try {
                 // Check if productSlug is a UUID
@@ -85,7 +87,7 @@ const ProductDetail: React.FC = () => {
                     setRelatedProducts(filtered);
                 }
             } catch (err: any) {
-                console.error("Fetch product detail error:", err);
+                logger.error("Fetch product detail error", { error: err, productSlug });
                 setError(err.response?.data?.message || 'Product not found');
             } finally {
                 setLoading(false);
@@ -256,7 +258,17 @@ const ProductDetail: React.FC = () => {
                             className="flex gap-4"
                         >
                             <button
-                                onClick={() => addToCart({ ...product, selectedSize } as any)}
+                                onClick={() => {
+                                    // Find the variant for the selected size
+                                    const selectedVariant = product.variants?.find(v =>
+                                        v.Size?.name === selectedSize || v.Size?.code === selectedSize
+                                    );
+                                    addToCart({
+                                        ...product,
+                                        selectedSize,
+                                        variant_id: selectedVariant?.id
+                                    } as any);
+                                }}
                                 disabled={isOutOfStock}
                                 className={`px-8 py-4 flex-1 flex items-center justify-center gap-3 tracking-[0.2em] uppercase text-xs font-medium transition-colors duration-500 shadow-xl ${isOutOfStock
                                     ? 'bg-stone-300 text-stone-500 cursor-not-allowed'

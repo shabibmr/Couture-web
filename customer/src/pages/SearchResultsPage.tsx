@@ -7,6 +7,7 @@ import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
 import { Product } from '../types';
 import { useAuthGuard } from '../hooks/useAuthGuard';
+import logger from '../utils/logger';
 
 // Organic shapes for product cards
 const organicShapes = [
@@ -50,6 +51,7 @@ const SearchResultsPage: React.FC = () => {
 
     // Fetch search results
     useEffect(() => {
+        logger.info('Page Mounted: SearchResultsPage', { query });
         const fetchResults = async () => {
             if (!query) {
                 setProducts([]);
@@ -69,7 +71,7 @@ const SearchResultsPage: React.FC = () => {
                 const uniqueCategories = [...new Set(response.data.map((p: any) => p.category).filter(Boolean))];
                 setCategories(uniqueCategories as string[]);
             } catch (err: any) {
-                console.error("Search error:", err);
+                logger.error("Search error", { error: err, query });
                 setError(err.response?.data?.message || 'Search failed');
             } finally {
                 setLoading(false);
@@ -97,7 +99,9 @@ const SearchResultsPage: React.FC = () => {
         // Filter by size
         if (selectedSizes.length > 0) {
             result = result.filter(p =>
-                p.sizes && p.sizes.some(size => selectedSizes.includes(size))
+                p.variants && p.variants.some(v =>
+                    v.Size && (selectedSizes.includes(v.Size.code) || selectedSizes.includes(v.Size.name))
+                )
             );
         }
 

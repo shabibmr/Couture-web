@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Package, CreditCard, RefreshCw, Truck, HelpCircle } from 'lucide-react';
+import logger from '../utils/logger';
 
 interface FAQItem {
     question: string;
@@ -15,6 +16,10 @@ interface FAQCategory {
 
 const FAQPage: React.FC = () => {
     const [openIndex, setOpenIndex] = useState<string | null>(null);
+
+    React.useEffect(() => {
+        logger.info('Page Mounted: FAQPage');
+    }, []);
 
     const faqData: FAQCategory[] = [
         {
@@ -131,7 +136,13 @@ const FAQPage: React.FC = () => {
 
     const toggleFAQ = (categoryIndex: number, faqIndex: number) => {
         const key = `${categoryIndex}-${faqIndex}`;
-        setOpenIndex(openIndex === key ? null : key);
+        const newOpenState = openIndex === key ? null : key;
+        if (newOpenState) {
+            const category = faqData[categoryIndex].category;
+            const question = faqData[categoryIndex].faqs[faqIndex].question;
+            logger.info('FAQ Item Opened', { category, question });
+        }
+        setOpenIndex(newOpenState);
     };
 
     return (

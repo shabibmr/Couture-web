@@ -15,8 +15,14 @@ if (serviceAccount) {
     });
 } else {
     // Fallback for development if no service account is provided
-    console.warn('Firebase Admin initialized without service account. Verification might fail.');
-    admin.initializeApp();
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    if (projectId) {
+        console.log(`Firebase Admin initializing with Project ID: ${projectId}`);
+        admin.initializeApp({ projectId });
+    } else {
+        console.warn('Firebase Admin initialized without service account or Project ID. Verification will fail.');
+        admin.initializeApp();
+    }
 }
 
 export default admin;

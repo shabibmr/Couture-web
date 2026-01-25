@@ -10,6 +10,17 @@ const CartDrawer: React.FC = () => {
     const { requireAuth } = useAuthGuard();
     const navigate = useNavigate();
 
+    const parsePrice = (price: any): number => {
+        if (typeof price === 'number') return price;
+        if (typeof price === 'string') {
+            if (!isNaN(parseFloat(price)) && /^\d+(\.\d+)?$/.test(price.trim())) {
+                return parseFloat(price);
+            }
+            return parseInt(price.replace(/[^0-9]/g, ''), 10) || 0;
+        }
+        return 0;
+    };
+
     return (
         <AnimatePresence>
             {isCartOpen && (
@@ -65,12 +76,12 @@ const CartDrawer: React.FC = () => {
                                         </div>
                                         <div className="flex-1 flex flex-col justify-between py-1">
                                             <div>
-                                                <h3 className="font-serif text-lg text-stone-800">{item.title}</h3>
-                                                <p className="text-[10px] tracking-widest text-stone-500 uppercase mt-1">Code: {item.code}</p>
-                                                <p className="text-xs text-stone-600 mt-1">Size: M</p>
+                                                <h3 className="font-serif text-lg text-stone-800">{item.name || item.title}</h3>
+                                                <p className="text-[10px] tracking-widest text-stone-500 uppercase mt-1">Code: {item.code || item.slug || 'N/A'}</p>
+                                                <p className="text-xs text-stone-600 mt-1">Size: {item.selectedSize || 'M'}</p>
                                             </div>
                                             <div className="flex justify-between items-end">
-                                                <span className="text-sm font-medium text-stone-900">{typeof item.price === 'number' ? formatPrice(item.price) : item.price}</span>
+                                                <span className="text-sm font-medium text-stone-900">{formatPrice(parsePrice(item.price))}</span>
                                                 <button
                                                     onClick={() => removeFromCart(index)}
                                                     className="text-[10px] uppercase tracking-wider text-stone-400 hover:text-red-400 transition-colors"
@@ -87,13 +98,30 @@ const CartDrawer: React.FC = () => {
                         <div className="p-6 border-t border-stone-100 space-y-4">
                             <div className="flex justify-between items-center mb-6">
                                 <span className="font-serif text-lg text-stone-600">Subtotal</span>
-                                <span className="font-medium text-xl text-stone-900">{formatPrice(cart.reduce((acc, item) => acc + (typeof item.price === 'number' ? item.price : 0), 0))}</span>
+                                <span className="font-medium text-xl text-stone-900">
+                                    {formatPrice(cart.reduce((acc, item) => {
+                                        const itemPrice = parsePrice(item.price);
+                                        const itemQuantity = item.quantity || 1;
+                                        return acc + (itemPrice * itemQuantity);
+                                    }, 0))}
+                                </span>
                             </div>
                             <button
                                 onClick={() => {
-                                    if (!requireAuth({ returnTo: '/cart' })) return;
+                                    if (!requireAuth({ returnTo: '/checkout' })) return;
+
+                                    // Calculate order totals to pass to checkout
+                                    const subtotal = cart.reduce((acc, item) => {
+                                        const itemPrice = parsePrice(item.price);
+                                        const itemQuantity = item.quantity || 1;
+                                        return acc + (itemPrice * itemQuantity);
+                                    }, 0);
+                                    const tax = subtotal * 0.18;
+                                    const discount = 0; // No discount from drawer
+                                    const total = subtotal + tax - discount;
+
                                     setIsCartOpen(false);
-                                    navigate('/cart');
+                                    navigate('/checkout', { state: { subtotal, tax, discount, total } });
                                 }}
                                 className="block w-full text-center bg-stone-900 text-[#FDFBF7] py-4 text-sm font-medium tracking-[0.2em] uppercase hover:bg-ruvera-gold transition-colors duration-500"
                             >

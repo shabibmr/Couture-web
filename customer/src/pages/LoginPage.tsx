@@ -3,36 +3,52 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import { useAuth } from '../context/AuthContext';
+import logger from '../utils/logger';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user } = useAuth();
+    const { user, signIn } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
     });
+    const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Get return URL from location state
     const from = (location.state as any)?.from || '/';
 
     // Redirect if already logged in
     useEffect(() => {
+        logger.info('Page Mounted: LoginPage');
         if (user) {
+            logger.info("[LoginPage] User already logged in, redirecting", { destination: from });
             navigate(from, { replace: true });
         }
     }, [user, navigate, from]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (error) setError(null);
     };
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        console.log('Login attempt:', formData);
-        // TODO: Implement actual email/password authentication
-        // For now, redirect to return URL
-        navigate(from, { replace: true });
+        logger.info("[LoginPage] Login attempt", { email: formData.email });
+        setError(null);
+        setIsLoading(true);
+
+        try {
+            await signIn(formData.email, formData.password);
+            logger.info("[LoginPage] Sign-in successful");
+            // navigate is handled by the useEffect above
+        } catch (err: any) {
+            logger.error('[LoginPage] Sign-in failed', { error: err, email: formData.email });
+            setError(err.message || 'Failed to sign in. Please check your credentials.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -48,6 +64,12 @@ const LoginPage: React.FC = () => {
                     <p className="text-stone-500 font-light">Sign in to continue your journey</p>
                 </div>
 
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
+                        {error}
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
@@ -60,6 +82,7 @@ const LoginPage: React.FC = () => {
                             onChange={handleChange}
                             className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
                             placeholder="you@example.com"
+                            disabled={isLoading}
                             required
                         />
                     </div>
@@ -75,6 +98,7 @@ const LoginPage: React.FC = () => {
                             onChange={handleChange}
                             className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
                             placeholder="••••••••"
+                            disabled={isLoading}
                             required
                         />
                     </div>
@@ -91,9 +115,18 @@ const LoginPage: React.FC = () => {
 
                     <button
                         type="submit"
-                        className="w-full py-4 bg-ruvera-gold text-white font-medium uppercase tracking-widest hover:bg-midnight transition-colors duration-300 shadow-lg hover:shadow-xl rounded-lg"
+                        disabled={isLoading}
+                        className={`w-full py-4 bg-ruvera-gold text-white font-medium uppercase tracking-widest hover:bg-midnight transition-colors duration-300 shadow-lg hover:shadow-xl rounded-lg flex items-center justify-center ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
-                        Sign In
+                        {isLoading ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Signing In...
+                            </>
+                        ) : 'Sign In'}
                     </button>
                 </form>
 

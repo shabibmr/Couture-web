@@ -1,6 +1,7 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Send, Instagram, Facebook, Twitter } from 'lucide-react';
+import logger from '../utils/logger';
 
 const ContactPage: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -12,16 +13,22 @@ const ContactPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
+    React.useEffect(() => {
+        logger.info('Page Mounted: ContactPage');
+    }, []);
+
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        logger.info("[ContactPage] Contact form submission", { name: formData.name, email: formData.email });
         setIsSubmitting(true);
 
         // Simulate form submission
         setTimeout(() => {
+            logger.info("[ContactPage] Contact form submission successful");
             setSubmitted(true);
             setIsSubmitting(false);
             setFormData({ name: '', email: '', phone: '', message: '' });

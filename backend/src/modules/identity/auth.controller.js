@@ -157,12 +157,19 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const syncFirebaseUser = async (req, res) => {
+    console.log("[AuthController] syncFirebaseUser started");
     try {
         const { idToken } = req.body;
+        if (!idToken) {
+            console.error("[AuthController] No idToken provided in request");
+            return res.status(400).json({ message: 'No idToken provided' });
+        }
 
         // Verify Firebase Token
+        console.log("[AuthController] Verifying Firebase idToken...");
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         const { email, name, picture, uid, email_verified } = decodedToken;
+        console.log("[AuthController] Firebase token verified for email:", email, "UID:", uid);
 
         // Split name into first and last
         const nameParts = (name || '').split(' ');
@@ -170,6 +177,7 @@ export const syncFirebaseUser = async (req, res) => {
         const last_name = nameParts.slice(1).join(' ') || '';
 
         // Find or create customer
+        console.log("[AuthController] Finding or creating customer in database...");
         let [customer, created] = await Customer.findOrCreate({
             where: { email },
             defaults: {
@@ -183,15 +191,20 @@ export const syncFirebaseUser = async (req, res) => {
             }
         });
 
-        // If customer exists but wasn't created now, update their info if needed
-        if (!created) {
+        if (created) {
+            console.log("[AuthController] New customer created. DB ID:", customer.id);
+        } else {
+            console.log("[AuthController] Customer found. DB ID:", customer.id);
+            // If customer exists but wasn't created now, update their info if needed
             customer.oauth_provider = 'firebase';
             customer.oauth_provider_id = uid;
             if (picture) customer.avatar_url = picture;
             await customer.save();
+            console.log("[AuthController] Customer info updated");
         }
 
         const token = generateToken(customer.id, 'customer');
+        console.log("[AuthController] Generated backend JWT for customer ID:", customer.id);
 
         res.json({
             message: created ? 'User registered and synced' : 'User synced successfully',
@@ -205,7 +218,7 @@ export const syncFirebaseUser = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error('Firebase sync error:', error);
+        console.error('[AuthController] Firebase sync error:', error);
         res.status(401).json({ message: 'Invalid Firebase token', error: error.message });
     }
 };

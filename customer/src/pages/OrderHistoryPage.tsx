@@ -3,9 +3,14 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Clock } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import logger from '../utils/logger';
 
 const OrderHistoryPage: React.FC = () => {
     const { orders, formatPrice } = useShop();
+
+    React.useEffect(() => {
+        logger.info('Page Mounted: OrderHistoryPage', { orderCount: orders.length });
+    }, [orders.length]);
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">

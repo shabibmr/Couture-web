@@ -23,6 +23,7 @@ router.post('/login', loginCustomer);
 router.post('/admin/login', loginAdmin);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.post('/firebase-sync', syncFirebaseUser);
 router.get('/me', authenticate, getCurrentUser);
 router.put('/me', authenticate, updateCurrentUser);
 

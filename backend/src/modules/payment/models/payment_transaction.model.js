@@ -48,7 +48,8 @@ const PaymentTransaction = sequelize.define('PaymentTransaction', {
     },
 }, {
     tableName: 'payment_transactions',
-    timestamps: true,
+    tableName: 'payment_transactions',
+    timestamps: false,
 });
 
 PaymentTransaction.belongsTo(Order, { foreignKey: 'order_id' });

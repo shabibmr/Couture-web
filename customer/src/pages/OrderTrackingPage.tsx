@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Check, Package, Truck, Home, ArrowLeft, LucideIcon } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { Order } from '../types';
+import logger from '../utils/logger';
 
 interface TrackingStep {
     status: string;
@@ -16,6 +17,7 @@ const OrderTrackingPage: React.FC = () => {
     const [order, setOrder] = useState<Order | null | undefined>(null);
 
     useEffect(() => {
+        logger.info('Page Mounted: OrderTrackingPage', { orderId: id });
         const foundOrder = orders.find(o => o.id === id);
         setOrder(foundOrder);
     }, [id, orders]);

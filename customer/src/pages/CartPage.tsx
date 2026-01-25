@@ -7,11 +7,16 @@ import { CartItem } from '../types';
 import api from '../services/api.service';
 import { API_ENDPOINTS } from '../config/api.config';
 import { useAuthGuard } from '../hooks/useAuthGuard';
+import logger from '../utils/logger';
 
 const CartPage: React.FC = () => {
-    const { cart, removeFromCart, formatPrice } = useShop();
+    const { cart, removeFromCart, updateCartItemQuantity, formatPrice } = useShop();
     const { requireAuth } = useAuthGuard();
     const navigate = useNavigate();
+
+    React.useEffect(() => {
+        logger.info('Page Mounted: CartPage', { cartCount: cart.length });
+    }, []);
 
     // Coupon State
     const [couponCode, setCouponCode] = useState<string>('');
@@ -21,12 +26,37 @@ const CartPage: React.FC = () => {
     const [couponError, setCouponError] = useState<string | null>(null);
 
     // Helper to parse price string or number to number for calculation
-    const parsePrice = (price: string | number): number => {
+    const parsePrice = (price: any): number => {
         if (typeof price === 'number') return price;
-        return parseInt(price.replace(/[^0-9]/g, ''), 10) || 0;
+        if (typeof price === 'string') {
+            if (!isNaN(parseFloat(price)) && /^\d+(\.\d+)?$/.test(price.trim())) {
+                return parseFloat(price);
+            }
+            return parseInt(price.replace(/[^0-9]/g, ''), 10) || 0;
+        }
+        return 0;
     };
 
-    const subtotal = cart.reduce((acc: number, item: CartItem) => acc + parsePrice(item.price), 0);
+    // Quantity handlers
+    const handleIncrementQuantity = (index: number) => {
+        const item = cart[index];
+        const currentQuantity = item.quantity || 1;
+        updateCartItemQuantity(index, currentQuantity + 1);
+    };
+
+    const handleDecrementQuantity = (index: number) => {
+        const item = cart[index];
+        const currentQuantity = item.quantity || 1;
+        if (currentQuantity > 1) {
+            updateCartItemQuantity(index, currentQuantity - 1);
+        }
+    };
+
+    const subtotal = cart.reduce((acc: number, item: CartItem) => {
+        const itemPrice = parsePrice(item.price);
+        const itemQuantity = item.quantity || 1;
+        return acc + (itemPrice * itemQuantity);
+    }, 0);
     const tax = subtotal * 0.18; // Assuming 18% tax
     const total = subtotal + tax - discount;
 
@@ -121,9 +151,20 @@ const CartPage: React.FC = () => {
 
                                     <div className="flex justify-between items-center mt-4">
                                         <div className="flex items-center gap-4 border border-stone-200 px-3 py-1">
-                                            <button className="text-stone-400 hover:text-stone-900">-</button>
-                                            <span className="text-sm font-medium text-stone-900">1</span>
-                                            <button className="text-stone-400 hover:text-stone-900">+</button>
+                                            <button
+                                                onClick={() => handleDecrementQuantity(index)}
+                                                disabled={(item.quantity || 1) <= 1}
+                                                className="text-stone-400 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                -
+                                            </button>
+                                            <span className="text-sm font-medium text-stone-900">{item.quantity || 1}</span>
+                                            <button
+                                                onClick={() => handleIncrementQuantity(index)}
+                                                className="text-stone-400 hover:text-stone-900"
+                                            >
+                                                +
+                                            </button>
                                         </div>
 
                                         <button

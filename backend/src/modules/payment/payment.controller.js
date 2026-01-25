@@ -54,6 +54,7 @@ export const getAllPayments = async (req, res) => {
 };
 
 export const createRazorpayOrder = async (req, res) => {
+    console.log("[PaymentController] createRazorpayOrder started for order_id:", req.body.order_id);
     try {
         const { order_id } = req.body;
         const customer_id = req.user.id;
@@ -78,7 +79,9 @@ export const createRazorpayOrder = async (req, res) => {
 
         if (!razorpayInstance) await initRazorpay();
 
+        console.log("[PaymentController] Calling Razorpay API for order receipt:", order.order_number);
         const razorpayOrder = await razorpayInstance.orders.create(options);
+        console.log("[PaymentController] Razorpay order created, RZP ID:", razorpayOrder.id);
 
         // Find or Create Gateway Record
         const [gateway] = await PaymentGateway.findOrCreate({
@@ -111,6 +114,7 @@ export const createRazorpayOrder = async (req, res) => {
 };
 
 export const verifyPayment = async (req, res) => {
+    console.log("[PaymentController] verifyPayment started for RZP Order:", req.body.razorpay_order_id);
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
@@ -154,9 +158,10 @@ export const verifyPayment = async (req, res) => {
                 { order_id: order.id, amount: order.total_amount }
             );
 
+            console.log("[PaymentController] Payment verification successful for RZP Order:", razorpay_order_id);
             res.json({ status: 'success', message: 'Payment verified successfully' });
         } else {
-
+            console.error("[PaymentController] Payment verification failed (signature mismatch) for RZP Order:", razorpay_order_id);
             await transaction.update({
                 status: 'failed',
                 gateway_response: { ...transaction.gateway_response, failure_reason: 'Signature mismatch' }
@@ -177,7 +182,7 @@ export const handleWebhook = async (req, res) => {
 
         // Verify signature
         const shasum = crypto.createHmac('sha256', secret);
-        shasum.update(JSON.stringify(req.body));
+        shasum.update(req.rawBody);
         const digest = shasum.digest('hex');
 
         if (digest !== req.headers['x-razorpay-signature']) {

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Plus, Edit2, Trash2, Check, X, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../firebase';
+import logger from '../utils/logger';
 import {
     sendEmailVerification,
     updateProfile,
@@ -25,7 +27,8 @@ interface Address {
 }
 
 const UserProfilePage: React.FC = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'profile' | 'addresses'>('profile');
 
     // Profile editing state
@@ -56,11 +59,12 @@ const UserProfilePage: React.FC = () => {
 
     // Initialize reCAPTCHA on mount
     useEffect(() => {
+        logger.info('Page Mounted: UserProfilePage');
         if (!recaptchaVerifier) {
             const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
                 size: 'invisible',
                 callback: () => {
-                    console.log('reCAPTCHA solved');
+                    logger.info('reCAPTCHA solved');
                 }
             });
             setRecaptchaVerifier(verifier);
@@ -77,7 +81,7 @@ const UserProfilePage: React.FC = () => {
                 await sendEmailVerification(auth.currentUser);
                 alert('Verification email sent! Please check your inbox.');
             } catch (error: any) {
-                console.error('Email verification error:', error);
+                logger.error('Email verification error', { error });
                 alert(`Error: ${error.message}`);
             }
         }
@@ -101,7 +105,7 @@ const UserProfilePage: React.FC = () => {
             alert('Profile updated successfully!');
             setIsEditingProfile(false);
         } catch (error: any) {
-            console.error('Profile update error:', error);
+            logger.error('Profile update error', { error });
             alert(`Error: ${error.message}`);
         }
     };
@@ -122,7 +126,7 @@ const UserProfilePage: React.FC = () => {
             setVerificationId(verificationId);
             alert('Verification code sent to your phone!');
         } catch (error: any) {
-            console.error('Phone verification error:', error);
+            logger.error('Phone verification error', { error });
             alert(`Error: ${error.message}`);
             setIsVerifyingPhone(false);
         }
@@ -142,7 +146,7 @@ const UserProfilePage: React.FC = () => {
             setVerificationCode('');
             setVerificationId(null);
         } catch (error: any) {
-            console.error('Phone verification error:', error);
+            logger.error('Phone verification code error', { error });
             alert(`Error: ${error.message}`);
         }
     };
@@ -191,6 +195,15 @@ const UserProfilePage: React.FC = () => {
         })));
     };
 
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            logger.error('Logout error', { error });
+        }
+    };
+
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
             <div id="recaptcha-container"></div>
@@ -233,13 +246,22 @@ const UserProfilePage: React.FC = () => {
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-serif text-midnight">Personal Information</h2>
                             {!isEditingProfile && (
-                                <button
-                                    onClick={() => setIsEditingProfile(true)}
-                                    className="flex items-center gap-2 text-sm text-ruvera-gold hover:text-midnight transition-colors"
-                                >
-                                    <Edit2 size={16} />
-                                    Edit
-                                </button>
+                                <div className="flex items-center gap-6">
+                                    <button
+                                        onClick={() => setIsEditingProfile(true)}
+                                        className="flex items-center gap-2 text-sm text-ruvera-gold hover:text-midnight transition-colors"
+                                    >
+                                        <Edit2 size={16} />
+                                        Edit Profile
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 transition-colors"
+                                    >
+                                        <LogOut size={16} />
+                                        Logout
+                                    </button>
+                                </div>
                             )}
                         </div>
 

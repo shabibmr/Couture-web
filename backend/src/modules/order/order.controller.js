@@ -8,10 +8,12 @@ import Inventory from '../inventory/models/inventory.model.js';
 import sequelize from '../../config/database.js';
 
 export const createOrder = async (req, res) => {
+    console.log("[OrderController] createOrder started for customer:", req.user.id);
     const t = await sequelize.transaction();
     try {
         const customer_id = req.user.id;
         const { shipping_address, billing_address, shipping_method_id } = req.body;
+        console.log("[OrderController] Payload - shipping_address:", shipping_address);
 
         // Get Cart
         const cart = await Cart.findOne({
@@ -32,9 +34,11 @@ export const createOrder = async (req, res) => {
         });
 
         if (!cart || !cart.items.length) {
+            console.warn("[OrderController] Cart is empty for customer:", customer_id);
             await t.rollback();
             return res.status(400).json({ message: 'Cart is empty' });
         }
+        console.log("[OrderController] Cart found with", cart.items.length, "items");
 
         // Calculate Totals
         let subtotal = 0;
@@ -73,6 +77,7 @@ export const createOrder = async (req, res) => {
             }
 
             // Reserve stock
+            console.log("[OrderController] Reserving stock for SKU:", item.ProductVariant.sku, "Qty:", item.quantity);
             inventory.reserved_quantity += item.quantity;
             await inventory.save({ transaction: t });
         }
@@ -106,6 +111,7 @@ export const createOrder = async (req, res) => {
         await CartItem.destroy({ where: { cart_id: cart.id }, transaction: t });
 
         await t.commit();
+        console.log("[OrderController] Order created successfully. Order Number:", order.order_number);
 
         res.status(201).json({ message: 'Order created successfully', order });
     } catch (error) {

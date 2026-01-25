@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Award, Heart, Users, Sparkles } from 'lucide-react';
+import logger from '../utils/logger';
 
 const AboutPage: React.FC = () => {
     const values = [
@@ -25,6 +26,10 @@ const AboutPage: React.FC = () => {
             description: 'Collaborating with master artisans to bring you garments that celebrate traditional techniques and modern innovation.'
         }
     ];
+
+    React.useEffect(() => {
+        logger.info('Page Mounted: AboutPage');
+    }, []);
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">

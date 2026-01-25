@@ -3,9 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, X } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import logger from '../utils/logger';
 
 const WishlistPage: React.FC = () => {
     const { wishlist, removeFromWishlist, addToCart, formatPrice } = useShop();
+
+    React.useEffect(() => {
+        logger.info('Page Mounted: WishlistPage', { wishlistCount: wishlist.length });
+    }, []);
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">

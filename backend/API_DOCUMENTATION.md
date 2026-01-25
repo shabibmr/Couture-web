@@ -59,6 +59,11 @@ Base URL: `http://localhost:5000/api`
 - **Body**: `{ "first_name", "last_name", "phone" }` (all optional)
 - **Response**: `200 OK` with updated user data.
 
+### Sync Firebase User
+- **Endpoint**: `POST /auth/firebase-sync`
+- **Body**: `{ "idToken": "firebase-id-token" }`
+- **Response**: `200 OK` with `{ user, token }` (creates or updates user from Firebase token).
+
 ### Customer Addresses
 - **Get Addresses**: `GET /auth/addresses` (Auth Required)
 - **Create Address**: `POST /auth/addresses` (Auth Required)
@@ -84,6 +89,24 @@ Base URL: `http://localhost:5000/api`
 - **Endpoint**: `GET /products/categories`
 - **Response**: `200 OK` - List of all active categories.
 
+### Create Category
+- **Endpoint**: `POST /products/categories` (Auth Required)
+- **Body**: `{ "name": "Category Name", "slug": "category-slug", "description": "...", "image_url": "..." }`
+- **Response**: `201 Created` with category object.
+
+### Update Category
+- **Endpoint**: `PUT /products/categories/:id` (Auth Required)
+- **Body**: Category fields to update.
+- **Response**: `200 OK`.
+
+### Delete Category
+- **Endpoint**: `DELETE /products/categories/:id` (Auth Required)
+- **Response**: `200 OK`.
+
+### Get Sizes
+- **Endpoint**: `GET /products/sizes`
+- **Response**: `200 OK` - List of configured sizes.
+
 ### Get Product Reviews
 - **Endpoint**: `GET /products/:productId/reviews`
 - **Response**: `200 OK` - List of approved reviews with customer names.
@@ -108,6 +131,24 @@ Base URL: `http://localhost:5000/api`
 - **Endpoint**: `POST /products`
 - **Body**: Product details (Name, Slug, Prices, etc.)
 - **Response**: `201 Created` with created product.
+
+### Update Product
+- **Endpoint**: `PUT /products/:id`
+- **Body**: Product details to update.
+- **Response**: `200 OK`.
+
+### Delete Product
+- **Endpoint**: `DELETE /products/:id`
+- **Response**: `200 OK`.
+
+### Add Product Variant
+- **Endpoint**: `POST /products/:id/variants` (Auth Required)
+- **Body**: `{ "size_id": "...", "color_id": "...", "sku": "...", "price": 100, "stock_quantity": 50 }`
+- **Response**: `201 Created` with variant object.
+
+### Delete Product Variant
+- **Endpoint**: `DELETE /products/:id/variants/:variantId` (Auth Required)
+- **Response**: `200 OK`.
 
 ---
 
@@ -190,6 +231,15 @@ Base URL: `http://localhost:5000/api`
 - **Endpoint**: `GET /orders/:id`
 - **Response**: `200 OK` - Single order with line items.
 
+### Update Order Status
+- **Endpoint**: `PUT /orders/:id/status` (Auth Required)
+- **Body**: `{ "status": "shipped" }` (enum: pending, processing, shipped, delivered, cancelled)
+- **Response**: `200 OK` with updated order.
+
+### Delete Order
+- **Endpoint**: `DELETE /orders/:id` (Auth Required)
+- **Response**: `200 OK`.
+
 ---
 
 ## Payments (`/payment`)
@@ -229,7 +279,12 @@ Base URL: `http://localhost:5000/api`
 - **Response**: `200 OK` with refund details.
 
 ### Get Payment Status
+- **Endpoint**: `GET /payment/status/:transaction_id`
 - **Response**: `200 OK` with `{ transaction_status, gateway_status, details }`.
+
+### Get All Payments
+- **Endpoint**: `GET /payment` (Auth Required)
+- **Response**: `200 OK` - List of all payment records.
 
 ---
 
@@ -350,3 +405,20 @@ Base URL: `http://localhost:5000/api`
 - **Headers**: `Authorization: Bearer <token>` (Admin Only)
 - **Body**: JSON object with settings to update.
 - **Response**: `200 OK`
+
+---
+
+## Notifications (`/notifications`)
+**Headers**: `Authorization: Bearer <token>`
+
+### Get Notifications
+- **Endpoint**: `GET /notifications`
+- **Response**: `200 OK` - List of user's notifications.
+
+### Mark Notification as Read
+- **Endpoint**: `PATCH /notifications/:id/read`
+- **Response**: `200 OK` with updated notification.
+
+### Delete Notification
+- **Endpoint**: `DELETE /notifications/:id`
+- **Response**: `200 OK`.

@@ -10,7 +10,6 @@ export interface Product {
     description: string;
     image: string;
     featured_image?: string; // Backend uses featured_image
-    sizes: string[];
     variants?: ProductVariant[]; // Include variants with inventory info
 }
 
@@ -31,6 +30,7 @@ export interface ProductVariant {
 export interface CartItem extends Product {
     quantity?: number;
     selectedSize?: string;
+    variant_id?: string;
 }
 
 export interface OrderItem {
@@ -72,6 +72,7 @@ export interface Currency {
 export interface ShopContextType {
     cart: CartItem[];
     addToCart: (product: Product) => void;
+    updateCartItemQuantity: (index: number, newQuantity: number) => void;
     removeFromCart: (index: number) => void;
     clearCart: () => void;
     isCartOpen: boolean;
@@ -92,6 +93,8 @@ export interface ShopContextType {
 export interface AuthContextType {
     user: User | null;
     loading: boolean;
+    signIn: (email: string, password: string) => Promise<void>;
+    signUp: (email: string, password: string, displayName: string) => Promise<void>;
     signInWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
 }

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { Order as OrderType } from '../types';
 import api from '../services/api.service';
 import { API_ENDPOINTS } from '../config/api.config';
+import logger from '../utils/logger';
 
 // Add Window interface for Razorpay
 declare global {
@@ -25,15 +26,20 @@ const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { cart, addOrder, clearCart, formatPrice, currency: shopCurrency } = useShop();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
 
-    // Protect Route
+    // Protect Route - use user state instead of localStorage
     React.useEffect(() => {
-        if (!localStorage.getItem('backend_token')) {
+        logger.info('Page Mounted: CheckoutPage', { cartCount: cart.length, total: orderData.total });
+        logger.debug("[CheckoutPage] Auth state check", { userId: user?.uid, authLoading });
+        if (!authLoading && !user?.backendToken) {
+            logger.warn("[CheckoutPage] No backend token found, redirecting to login");
             // Redirect to login with return url
             navigate('/login', { state: { from: '/checkout' } });
+        } else if (user?.backendToken) {
+            logger.info("[CheckoutPage] Authorized access granted");
         }
-    }, [navigate, user]);
+    }, [authLoading, user, navigate]);
 
     const orderData = (location.state as CheckoutState) || { subtotal: 0, tax: 0, discount: 0, total: 0 };
     const { total } = orderData;
@@ -53,10 +59,12 @@ const CheckoutPage: React.FC = () => {
 
     const handlePayment = async (e: FormEvent) => {
         e.preventDefault();
+        logger.info("[CheckoutPage] Payment initiated", { total: orderData.total });
         setLoading(true);
 
         try {
             // 1. Create Order in Backend
+            logger.info("[CheckoutPage] Creating order in backend");
             const orderResponse = await api.post(API_ENDPOINTS.ORDERS, {
                 shipping_address: formData,
                 billing_address: formData, // Simplified for now
@@ -64,6 +72,7 @@ const CheckoutPage: React.FC = () => {
             });
 
             const backendOrderId = orderResponse.data.order.id;
+            logger.info("[CheckoutPage] Backend order created", { backendOrderId });
 
             // 2. Create Razorpay Order
             const razorpayOrderResponse = await api.post('/payment/create-order', {
@@ -107,10 +116,11 @@ const CheckoutPage: React.FC = () => {
                             clearCart();
                             navigate('/order-success', { state: { orderId: backendOrderId } });
                         } else {
+                            logger.error('Payment verification failed', { response });
                             alert('Payment verification failed. Please contact support.');
                         }
                     } catch (err) {
-                        console.error('Verification error:', err);
+                        logger.error('Verification error', { error: err });
                         alert('Error verifying payment.');
                     }
                 },
@@ -129,12 +139,24 @@ const CheckoutPage: React.FC = () => {
             });
             rzp.open();
         } catch (error: any) {
-            console.error('Checkout error:', error);
+            logger.error('Checkout error', { error });
             alert(error.response?.data?.message || 'Error initiating payment.');
         } finally {
             setLoading(false);
         }
     };
+
+    // Show loading while auth is initializing
+    if (authLoading) {
+        return (
+            <div className="bg-beige-bg min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ruvera-gold mx-auto mb-4"></div>
+                    <p className="text-stone-500">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (cart.length === 0) {
         return <div className="p-20 text-center">Your cart is empty. <button onClick={() => navigate('/shop')} className="text-ruvera-gold underline">Go Shopping</button></div>;

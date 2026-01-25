@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, ShoppingBag } from 'lucide-react';
+import logger from '../utils/logger';
 
 interface SuccessState {
     orderId: string;
@@ -10,6 +11,10 @@ interface SuccessState {
 const OrderSuccessPage: React.FC = () => {
     const location = useLocation();
     const orderId = (location.state as SuccessState)?.orderId || "RUV-0000";
+
+    React.useEffect(() => {
+        logger.info('Page Mounted: OrderSuccessPage', { orderId });
+    }, [orderId]);
 
     return (
         <div className="bg-beige-bg min-h-screen flex items-center justify-center px-6">

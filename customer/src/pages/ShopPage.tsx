@@ -7,6 +7,7 @@ import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
 import { Product } from '../types';
 import { useAuthGuard } from '../hooks/useAuthGuard';
+import logger from '../utils/logger';
 
 // Determine shape based on index
 const organicShapes = [
@@ -46,7 +47,7 @@ const ShopPage: React.FC = () => {
             const productsData = response.data.data || response.data;
             setProducts(Array.isArray(productsData) ? productsData : []);
         } catch (err: any) {
-            console.error("Fetch products error:", err);
+            logger.error("Fetch products error", { error: err });
             setError(err.response?.data?.message || 'Failed to connect to the server');
         } finally {
             setLoading(false);
@@ -55,13 +56,14 @@ const ShopPage: React.FC = () => {
 
     // Initial fetch
     React.useEffect(() => {
+        logger.info('Page Mounted: ShopPage');
         const loadInitialData = async () => {
             // Fetch Categories
             try {
                 const catResponse = await api.get(API_ENDPOINTS.PRODUCTS.CATEGORIES);
                 setCategories(catResponse.data.map((c: any) => c.name));
             } catch (err) {
-                console.error("Fetch categories error:", err);
+                logger.error("Fetch categories error", { error: err });
             }
 
             await fetchProducts();

@@ -51,7 +51,8 @@ const Refund = sequelize.define('Refund', {
     },
 }, {
     tableName: 'refunds',
-    timestamps: true,
+    tableName: 'refunds',
+    timestamps: false,
 });
 
 Refund.belongsTo(Order, { foreignKey: 'order_id' });
