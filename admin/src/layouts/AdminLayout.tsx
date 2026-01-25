@@ -1,9 +1,14 @@
-import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Tag, Archive, PercentCircle, DollarSign, Image } from 'lucide-react';
 import logo from '../assets/ruvera_logo.png';
 
-const SidebarItem = ({ to, icon, label }) => {
+interface SidebarItemProps {
+    to: string;
+    icon: React.ElementType;
+    label: string;
+}
+
+const SidebarItem = ({ to, icon, label }: SidebarItemProps) => {
     const LocationIcon = icon;
     const location = useLocation();
     const isActive = location.pathname === to;

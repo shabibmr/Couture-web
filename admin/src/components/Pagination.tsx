@@ -1,7 +1,14 @@
-import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPerPage }) {
+interface PaginationProps {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    totalItems: number;
+    itemsPerPage: number;
+}
+
+export default function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPerPage }: PaginationProps) {
     if (totalPages <= 1) return null;
 
     return (
@@ -34,8 +41,8 @@ export default function Pagination({ currentPage, totalPages, onPageChange, tota
                                     onClick={() => onPageChange(pageNumber)}
                                     aria-current={currentPage === pageNumber ? 'page' : undefined}
                                     className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNumber
-                                            ? 'z-10 bg-ruvera-gold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ruvera-gold'
-                                            : 'text-stone-900 ring-1 ring-inset ring-stone-300 hover:bg-stone-50 focus:z-20 focus:outline-offset-0'
+                                        ? 'z-10 bg-ruvera-gold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ruvera-gold'
+                                        : 'text-stone-900 ring-1 ring-inset ring-stone-300 hover:bg-stone-50 focus:z-20 focus:outline-offset-0'
                                         }`}
                                 >
                                     {pageNumber}

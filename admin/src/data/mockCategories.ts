@@ -1,4 +1,6 @@
-export const initialCategories = [
+import type { Category } from '../types';
+
+export const initialCategories: Category[] = [
     {
         id: "cat_001",
         name: "Coats & Jackets",
@@ -33,13 +35,13 @@ export const initialCategories = [
     }
 ];
 
-export const getCategories = () => {
+export const getCategories = (): Promise<Category[]> => {
     return new Promise((resolve) => {
         setTimeout(() => resolve([...initialCategories]), 400);
     });
 };
 
-export const getCategoryById = (id) => {
+export const getCategoryById = (id: string): Promise<Category | undefined> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve(initialCategories.find(c => c.id === id));

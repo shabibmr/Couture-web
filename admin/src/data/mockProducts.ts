@@ -1,4 +1,6 @@
-export const initialProducts = [
+import type { Product } from '../types';
+
+export const initialProducts: Product[] = [
     {
         id: "prod_001",
         title: "Structured Wool Blazer",
@@ -35,13 +37,13 @@ export const initialProducts = [
 ];
 
 // Simulation of async operations
-export const getProducts = () => {
+export const getProducts = (): Promise<Product[]> => {
     return new Promise((resolve) => {
         setTimeout(() => resolve([...initialProducts]), 500);
     });
 };
 
-export const getProductById = (id) => {
+export const getProductById = (id: string): Promise<Product | undefined> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve(initialProducts.find(p => p.id === id));

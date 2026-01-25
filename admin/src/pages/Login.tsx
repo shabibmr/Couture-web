@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Lock, Mail } from 'lucide-react';
@@ -9,15 +9,20 @@ export default function Login() {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         try {
             const response = await api.post('/auth/admin/login', { email, password });
             localStorage.setItem('token', response.data.token);
             navigate('/');
-        } catch (err) {
-            setError(err.response?.data?.message || 'Login failed');
+        } catch (err: unknown) {
+            if (err && typeof err === 'object' && 'response' in err) {
+                const error = err as { response?: { data?: { message?: string } } };
+                setError(error.response?.data?.message || 'Login failed');
+            } else {
+                setError('Login failed');
+            }
         }
     };
 

@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { IndianRupee, ShoppingBag, Users, TrendingUp, ArrowRight, Clock } from 'lucide-react';
 import api from '../services/api';
 
 import { formatCurrency } from '../utils/currency';
 
-const StatCard = ({ label, value, trend, icon, colorClass }) => {
+interface StatCardProps {
+    label: string;
+    value: string | number;
+    trend?: number;
+    icon: React.ElementType;
+    colorClass: string;
+}
+
+const StatCard = ({ label, value, trend, icon, colorClass }: StatCardProps) => {
     const Icon = icon;
     return (
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 hover:shadow-lg transition-shadow duration-300">

@@ -1,4 +1,6 @@
-export const initialCustomers = [
+import type { Customer } from '../types';
+
+export const initialCustomers: Customer[] = [
     {
         id: "cust_001",
         name: "Isabella Venthoma",
@@ -62,13 +64,13 @@ export const initialCustomers = [
 ];
 
 // Simulation of async operations
-export const getCustomers = () => {
+export const getCustomers = (): Promise<Customer[]> => {
     return new Promise((resolve) => {
         setTimeout(() => resolve([...initialCustomers]), 600);
     });
 };
 
-export const getCustomerById = (id) => {
+export const getCustomerById = (id: string): Promise<Customer | undefined> => {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve(initialCustomers.find(c => c.id === id));
