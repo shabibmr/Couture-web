@@ -12,7 +12,7 @@ import { Op } from 'sequelize';
 
 export const getAllProducts = async (req, res) => {
     try {
-        const { page = 1, limit = 10, category_slug, brand_slug, search, status } = req.query;
+        const { page = 1, limit = 10, category_slug, brand_slug, search, q, status } = req.query;
         const offset = (page - 1) * limit;
 
         const where = {};
@@ -27,10 +27,11 @@ export const getAllProducts = async (req, res) => {
             where.is_active = true;
         }
 
-        if (search) {
+        const searchQuery = search || q;
+        if (searchQuery) {
             where[Op.or] = [
-                { name: { [Op.like]: `%${search}%` } },
-                { description: { [Op.like]: `%${search}%` } }
+                { name: { [Op.like]: `%${searchQuery}%` } },
+                { description: { [Op.like]: `%${searchQuery}%` } }
             ];
         }
 
@@ -170,6 +171,7 @@ export const createProduct = async (req, res) => {
             const sizeRecords = await Size.findAll({
                 where: { name: sizes }
             });
+            console.log('Found sizeRecords:', sizeRecords.map(s => s.name));
 
             for (const size of sizeRecords) {
                 // Generate SKU: CODE-SIZE (e.g., TS-001-S)

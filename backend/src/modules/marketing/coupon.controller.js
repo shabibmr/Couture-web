@@ -76,7 +76,8 @@ export const deleteCoupon = async (req, res) => {
 
 export const validateCoupon = async (req, res) => {
     try {
-        const { code, cartTotal } = req.body;
+        const { code, cartTotal, cart_total } = req.body;
+        const total = cartTotal || cart_total;
 
         const coupon = await Coupon.findOne({
             where: {
@@ -95,7 +96,7 @@ export const validateCoupon = async (req, res) => {
             return res.status(400).json({ isValid: false, message: 'Coupon usage limit reached' });
         }
 
-        if (cartTotal && coupon.min_order_value > cartTotal) {
+        if (total && coupon.min_order_value > total) {
             return res.status(400).json({
                 isValid: false,
                 message: `Minimum order value of ${coupon.min_order_value} required`

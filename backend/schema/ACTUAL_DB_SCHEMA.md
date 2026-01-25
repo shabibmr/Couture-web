@@ -88,7 +88,7 @@ Generated from database: couture_db
 - `usage_limit`: int(11) (Default: NULL)
 - `used_count`: int(11) (Default: 0)
 - `valid_from`: timestamp (Index, Default: NULL)
-- `valid_until`: timestamp (Default: NULL)
+- `valid_until`: timestamp (Index, Default: NULL)
 - `is_active`: tinyint(1) (Index, Default: 1)
 - `created_at`: timestamp (Not Null, Default: current_timestamp())
 - `updated_at`: timestamp (Not Null, Default: current_timestamp(), on update current_timestamp())
@@ -103,7 +103,7 @@ Generated from database: couture_db
 - `avatar_url`: text (Default: NULL)
 - `email_verified`: tinyint(1) (Default: 0)
 - `oauth_provider`: varchar(50) (Index, Default: NULL)
-- `oauth_provider_id`: varchar(255) (Default: NULL)
+- `oauth_provider_id`: varchar(255) (Index, Default: NULL)
 - `created_at`: timestamp (Index, Not Null, Default: current_timestamp())
 - `updated_at`: timestamp (Not Null, Default: current_timestamp(), on update current_timestamp())
 
@@ -119,7 +119,7 @@ Generated from database: couture_db
 - `state`: varchar(100) (Not Null)
 - `postal_code`: varchar(20) (Not Null)
 - `country`: varchar(100) (Not Null, Default: 'India')
-- `is_default_shipping`: tinyint(1) (Default: 0)
+- `is_default_shipping`: tinyint(1) (Index, Default: 0)
 - `is_default_billing`: tinyint(1) (Default: 0)
 - `created_at`: timestamp (Not Null, Default: current_timestamp())
 - `updated_at`: timestamp (Not Null, Default: current_timestamp(), on update current_timestamp())
@@ -138,17 +138,6 @@ Generated from database: couture_db
 - `is_subscribed`: tinyint(1) (Default: 1)
 - `subscribed_at`: timestamp (Not Null, Default: current_timestamp())
 - `unsubscribed_at`: timestamp (Default: NULL)
-
-### `notifications`
-- `id`: char(36) (PK, Not Null)
-- `user_id`: char(36) (Index, Not Null)
-- `type`: enum('payment_success','payment_failed','refund_processed','order_shipped','order_delivered') (Not Null)
-- `title`: varchar(255) (Not Null)
-- `message`: text (Not Null)
-- `read`: tinyint(1) (Default: 0)
-- `metadata`: longtext (Default: NULL)
-- `created_at`: timestamp (Not Null, Default: current_timestamp())
-- `updated_at`: timestamp (Not Null, Default: current_timestamp(), on update current_timestamp())
 
 ### `orders`
 - `id`: char(36) (PK, Not Null)
@@ -178,14 +167,6 @@ Generated from database: couture_db
 - `quantity`: int(11) (Not Null)
 - `unit_price`: decimal(10,2) (Not Null)
 - `total_price`: decimal(10,2) (Not Null)
-- `created_at`: timestamp (Not Null, Default: current_timestamp())
-
-### `password_reset_tokens`
-- `id`: char(36) (PK, Not Null)
-- `customer_id`: char(36) (Index, Not Null)
-- `token`: varchar(255) (Not Null)
-- `expires_at`: datetime (Not Null)
-- `used`: tinyint(1) (Default: 0)
 - `created_at`: timestamp (Not Null, Default: current_timestamp())
 
 ### `payment_gateways`
@@ -229,7 +210,7 @@ Generated from database: couture_db
 - `id`: char(36) (PK, Not Null)
 - `product_id`: char(36) (Index, Not Null)
 - `image_url`: longtext (Not Null)
-- `sort_order`: int(11) (Default: 0)
+- `sort_order`: int(11) (Index, Default: 0)
 - `created_at`: timestamp (Not Null, Default: current_timestamp())
 
 ### `product_variants`
@@ -270,7 +251,7 @@ Generated from database: couture_db
 
 ### `seo_metadata`
 - `id`: char(36) (PK, Not Null)
-- `entity_type`: varchar(50) (Index, Not Null)
+- `entity_type`: varchar(50) (Not Null)
 - `entity_id`: char(36) (Not Null)
 - `meta_title`: varchar(255) (Default: NULL)
 - `meta_description`: text (Default: NULL)
@@ -286,8 +267,8 @@ Generated from database: couture_db
 - `key`: varchar(255) (Unique, Not Null)
 - `value`: text (Default: NULL)
 - `description`: varchar(255) (Default: NULL)
-- `createdAt`: timestamp (Not Null, Default: current_timestamp())
-- `updatedAt`: timestamp (Not Null, Default: current_timestamp(), on update current_timestamp())
+- `created_at`: timestamp (Not Null, Default: current_timestamp())
+- `updated_at`: timestamp (Not Null, Default: current_timestamp(), on update current_timestamp())
 
 ### `shipments`
 - `id`: char(36) (PK, Not Null)

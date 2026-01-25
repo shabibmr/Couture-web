@@ -14,6 +14,17 @@ This document details the database schema expected by the backend code, based on
 - `created_at`: DATETIME
 - `updated_at`: DATETIME
 
+### `audit_logs`
+- `id`: UUID (PK)
+- `admin_id`: UUID (FK -> admins.id)
+- `action`: STRING (Not Null)
+- `entity_type`: STRING (Not Null)
+- `entity_id`: UUID (Not Null)
+- `old_values`: JSON
+- `new_values`: JSON
+- `ip_address`: STRING
+- `created_at`: DATETIME
+
 ### `customers`
 - `id`: UUID (PK)
 - `email`: STRING (Unique, Not Null)
@@ -254,9 +265,16 @@ This document details the database schema expected by the backend code, based on
 - `variant_id`: UUID (FK -> product_variants.id, Unique)
 - `quantity`: INTEGER (Default: 0)
 - `reserved_quantity`: INTEGER (Default: 0)
-- `low_stock_threshold`: INTEGER (Default: 10)
-- `last_updated`: DATE (Default: NOW)
+- `low_stock_threshold`: INTEGER (Default: 0)
+- `last_updated`: DATETIME (Default: NOW)
 - Indexes: (variant_id)
+
+### `newsletters`
+- `id`: UUID (PK)
+- `email`: STRING (Unique, Not Null)
+- `is_subscribed`: BOOLEAN (Default: true)
+- `subscribed_at`: DATETIME
+- `unsubscribed_at`: DATETIME
 
 ## Marketing Module
 
@@ -302,8 +320,32 @@ This document details the database schema expected by the backend code, based on
 
 ## System Module
 
+### `seo_metadata`
+- `id`: UUID (PK)
+- `entity_type`: STRING (Not Null)
+- `entity_id`: UUID (Not Null)
+- `meta_title`: STRING
+- `meta_description`: TEXT
+- `meta_keywords`: TEXT
+- `og_title`: STRING
+- `og_description`: TEXT
+- `og_image`: TEXT
+- `created_at`: DATETIME
+- `updated_at`: DATETIME
+
 ### `settings`
 - `id`: UUID (PK)
 - `key`: STRING (Unique, Not Null)
 - `value`: TEXT
 - `description`: STRING
+- `created_at`: DATETIME
+- `updated_at`: DATETIME
+
+### `taxes`
+- `id`: UUID (PK)
+- `name`: STRING (Not Null)
+- `region`: STRING
+- `rate`: DECIMAL(5, 2) (Not Null)
+- `is_active`: BOOLEAN (Default: true)
+- `created_at`: DATETIME
+- `updated_at`: DATETIME

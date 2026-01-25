@@ -67,9 +67,9 @@ const CartPage: React.FC = () => {
         setCouponLoading(true);
         setCouponError(null);
         try {
-            const response = await api.post(API_ENDPOINTS.MARKETING.COUPONS, {
+            const response = await api.post(API_ENDPOINTS.COUPONS.VALIDATE, {
                 code: couponCode,
-                order_amount: subtotal
+                cartTotal: subtotal
             });
 
             if (response.data.valid) {

@@ -47,7 +47,7 @@ const ProductDetail: React.FC = () => {
 
         if (product.variants && product.variants.length > 0) {
             // Extract unique size codes/names from variants
-            const sizes = Array.from(new Set(product.variants.map(v => v.Size?.code || v.Size?.name).filter(Boolean)));
+            const sizes = Array.from(new Set(product.variants.map(v => v.Size?.code || v.Size?.name).filter((s): s is string => !!s)));
             return sizes.length > 0 ? sizes : ['S', 'M', 'L', 'XL'];
         }
         return ['S', 'M', 'L', 'XL'];

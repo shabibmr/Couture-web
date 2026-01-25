@@ -20,6 +20,7 @@ import { authenticate } from '../../middleware/auth.middleware.js';
 
 const router = express.Router();
 
+router.get('/search', getAllProducts);
 router.get('/', getAllProducts);
 router.get('/categories', getCategories);
 router.get('/sizes', getSizes);

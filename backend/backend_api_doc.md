@@ -73,6 +73,40 @@ Base URL: `http://localhost:5000/api`
 
 ---
 
+## Customers (`/customers`)
+**Headers**: `Authorization: Bearer <token>` (Admin Only)
+
+### Get All Customers
+- **Endpoint**: `GET /customers`
+- **Query Params**:
+  - `page`: Page number (default: 1)
+  - `limit`: Items per page (default: 10)
+  - `search`: Search by name or email
+- **Response**: `200 OK` - List of customers with pagination.
+
+### Get Customer Details
+- **Endpoint**: `GET /customers/:id`
+- **Response**: `200 OK` - Customer details including orders.
+
+### Update Customer
+- **Endpoint**: `PUT /customers/:id`
+- **Body**:
+  ```json
+  {
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "phone": "1234567890",
+    "status": "active" // or "blocked", "vip"
+  }
+  ```
+- **Response**: `200 OK` with updated customer.
+
+### Delete Customer
+- **Endpoint**: `DELETE /customers/:id`
+- **Response**: `200 OK`.
+
+---
+
 ## Products (`/products`)
 
 ### Get All Products
@@ -80,9 +114,10 @@ Base URL: `http://localhost:5000/api`
 - **Query Params**: 
   - `page`: Page number (default: 1)
   - `limit`: Items per page (default: 10)
-  - `search`: Search query for name/description
+  - `search` or `q`: Search query for name/description
   - `category_slug`: Filter by category
   - `brand_slug`: Filter by brand
+  - `status`: Filter by status (`all`, `inactive`, default: `active`)
 - **Response**: `200 OK` - List of products.
 
 ### Get Categories
@@ -91,7 +126,7 @@ Base URL: `http://localhost:5000/api`
 
 ### Create Category
 - **Endpoint**: `POST /products/categories` (Auth Required)
-- **Body**: `{ "name": "Category Name", "slug": "category-slug", "description": "...", "image_url": "..." }`
+- **Body**: `{ "name": "Category Name", "slug": "category-slug", "description": "...", "image_url": "...", "status": "Active" }`
 - **Response**: `201 Created` with category object.
 
 ### Update Category
@@ -123,13 +158,17 @@ Base URL: `http://localhost:5000/api`
   ```
 - **Response**: `201 Created` with review object.
 
-### Get Product Details
+### Get Product Details (By Slug)
 - **Endpoint**: `GET /products/:slug`
+- **Response**: `200 OK` - Single product details including variants and images.
+
+### Get Product Details (By ID)
+- **Endpoint**: `GET /products/id/:id`
 - **Response**: `200 OK` - Single product details including variants and images.
 
 ### Create Product
 - **Endpoint**: `POST /products`
-- **Body**: Product details (Name, Slug, Prices, etc.)
+- **Body**: Product details (Name, Slug, Prices, mainImage, additionalImages, sizes, etc.)
 - **Response**: `201 Created` with created product.
 
 ### Update Product
@@ -155,27 +194,101 @@ Base URL: `http://localhost:5000/api`
 ## Wishlist (`/wishlist`)
 **Headers**: `Authorization: Bearer <token>`
 
+> **Implementation Status**: ✅ **FULLY IMPLEMENTED** - All endpoints are functional and tested.
+
 ### Get Wishlist
 - **Endpoint**: `GET /wishlist`
-- **Response**: `200 OK` - Wishlist object with `items` array populated with product details.
+- **Auth**: Required
+- **Description**: Retrieves the authenticated customer's wishlist with full product details.
+- **Response**: `200 OK`
+  ```json
+  {
+    "id": "wishlist-uuid",
+    "customer_id": "customer-uuid",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z",
+    "items": [
+      {
+        "id": "item-uuid",
+        "wishlist_id": "wishlist-uuid",
+        "product_id": "product-uuid",
+        "added_at": "2024-01-01T00:00:00Z",
+        "Product": {
+          "id": "product-uuid",
+          "name": "Product Name",
+          "slug": "product-slug",
+          "base_price": 1000.00,
+          "sale_price": 800.00,
+          "featured_image": "https://...",
+          "images": [...]
+        }
+      }
+    ]
+  }
+  ```
+- **Notes**: 
+  - Auto-creates wishlist if it doesn't exist for the customer
+  - Returns empty `items` array for new wishlists
+  - Includes full product details with images
 
 ### Add Product to Wishlist
 - **Endpoint**: `POST /wishlist/items`
+- **Auth**: Required
 - **Body**:
   ```json
   {
     "product_id": "uuid-of-product"
   }
   ```
-- **Response**: `201 Created` with added item.
+- **Response**: `201 Created` with added item
+  ```json
+  {
+    "message": "Product added to wishlist",
+    "item": {
+      "id": "item-uuid",
+      "wishlist_id": "wishlist-uuid",
+      "product_id": "product-uuid",
+      "added_at": "2024-01-01T00:00:00Z"
+    }
+  }
+  ```
+- **Error Responses**:
+  - `400 Bad Request` - If `product_id` is missing
+  - `200 OK` - If product already exists in wishlist (returns existing item with message)
+- **Notes**: 
+  - Prevents duplicate items
+  - Auto-creates wishlist if it doesn't exist
 
 ### Remove Item from Wishlist
-- **Endpoint**: `DELETE /wishlist/items/:id` (WishlistItem ID)
+- **Endpoint**: `DELETE /wishlist/items/:id` 
+- **Auth**: Required
+- **URL Parameters**: `:id` - The wishlist_item ID (not product ID)
 - **Response**: `200 OK`
+  ```json
+  {
+    "message": "Item removed from wishlist"
+  }
+  ```
+- **Error Responses**:
+  - `404 Not Found` - If wishlist doesn't exist or item not found
+- **Notes**: 
+  - Ensures item belongs to authenticated customer's wishlist
+  - Secure deletion (only allows removing from own wishlist)
 
 ### Clear Wishlist
 - **Endpoint**: `DELETE /wishlist/clear`
+- **Auth**: Required
 - **Response**: `200 OK`
+  ```json
+  {
+    "message": "Wishlist cleared"
+  }
+  ```
+- **Error Responses**:
+  - `404 Not Found` - If wishlist doesn't exist
+- **Notes**: 
+  - Removes all items from wishlist in one operation
+  - Keeps the wishlist record itself (only deletes items)
 
 ---
 

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import sequelize from './config/database.js';
@@ -27,8 +27,8 @@ import notificationRoutes from './modules/notification/notification.routes.js';
 app.use(cors());
 app.use(express.json({
     limit: '50mb',
-    verify: (req, res, buf) => {
-        req.rawBody = buf.toString();
+    verify: (_req: any, _res: any, buf: Buffer) => {
+        (_req as any).rawBody = buf.toString();
     }
 }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -48,12 +48,12 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // Health Check
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'ok', message: 'Backend is running' });
 });
 
 // Database Connection and Server Start
-const startServer = async () => {
+const startServer = async (): Promise<void> => {
     try {
         await sequelize.authenticate();
         console.log('Database connection established successfully.');

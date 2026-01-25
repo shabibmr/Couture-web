@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import logRocketService from './utils/logrocketService';
 import { ShopProvider } from './context/ShopContext';
 import Layout from './components/Layout';
 import SplashScreen from './components/SplashScreen';
@@ -21,6 +22,29 @@ import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 
+// Navigation tracker component
+const NavigationTracker: React.FC = () => {
+  const location = useLocation();
+  const prevLocationRef = React.useRef<string>('/');
+
+  useEffect(() => {
+    const from = prevLocationRef.current;
+    const to = location.pathname;
+
+    if (from !== to) {
+      logRocketService.logNavigation({
+        from,
+        to,
+        page: to,
+      });
+
+      prevLocationRef.current = to;
+    }
+  }, [location]);
+
+  return null;
+};
+
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +57,7 @@ const App: React.FC = () => {
 
         {!loading && (
           <BrowserRouter>
+            <NavigationTracker />
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<HomePage />} />

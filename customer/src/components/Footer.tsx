@@ -17,7 +17,7 @@ const Footer: React.FC = () => {
         setLoading(true);
         setStatus(null);
         try {
-            await api.post(API_ENDPOINTS.MARKETING.NEWSLETTER, { email });
+            await api.post(API_ENDPOINTS.NEWSLETTER, { email });
             setStatus({ type: 'success', message: 'Subscribed successfully!' });
             setEmail('');
         } catch (error: any) {

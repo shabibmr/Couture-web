@@ -113,25 +113,32 @@ const ShopPage: React.FC = () => {
                 </motion.div>
 
                 {/* Filters & Search Bar */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-16 border-b border-stone-200 pb-10">
-                    <div className="flex flex-wrap justify-center gap-6">
-                        <button
-                            onClick={() => handleCategoryClick(null)}
-                            className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${!selectedCategory ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
-                        >
-                            All Pieces
-                        </button>
-                        {categories.map(cat => (
+                <div className="flex flex-col gap-8 mb-16 border-b border-stone-200 pb-10">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                        {/* Categories */}
+                        <div className="flex flex-wrap justify-center gap-6">
                             <button
-                                key={cat}
-                                onClick={() => handleCategoryClick(cat)}
-                                className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${selectedCategory === cat ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
+                                onClick={() => handleCategoryClick(null)}
+                                className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${!selectedCategory ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
                             >
-                                {cat}
+                                All Pieces
                             </button>
-                        ))}
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => handleCategoryClick(cat)}
+                                    className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${selectedCategory === cat ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+
                     </div>
 
+                </div>
+
+                <div className="flex flex-col md:flex-row justify-end items-center gap-8 w-full">
                     <form onSubmit={handleSearch} className="relative w-full md:w-80">
                         <input
                             type="text"

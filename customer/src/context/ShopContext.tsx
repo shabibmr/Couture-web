@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from '../config/api.config';
 import { useAuth } from './AuthContext';
 import api from '../services/api.service';
 import logger from '../utils/logger';
+import logRocketService from '../utils/logrocketService';
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
@@ -78,7 +79,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                 try {
                     // Fetch Cart
                     try {
-                        const cartRes = await api.get(API_ENDPOINTS.CART);
+                        const cartRes = await api.get(API_ENDPOINTS.CART.GET);
                         if (cartRes.data && cartRes.data.items) {
                             const backendCart = cartRes.data.items.map((item: any) => ({
                                 ...item.Product,
@@ -99,7 +100,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                                     mergedCart.push(guestItem);
                                     // Sync guest item to backend
                                     try {
-                                        await api.post(`${API_ENDPOINTS.CART}/items`, {
+                                        await api.post(API_ENDPOINTS.CART.ADD_ITEM, {
                                             product_id: guestItem.id,
                                             quantity: guestItem.quantity || 1,
                                             size: guestItem.selectedSize || 'M',
@@ -112,6 +113,14 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                             }
 
                             setCart(mergedCart);
+
+                            // Log cart merge
+                            logRocketService.logStateChange({
+                                context: 'ShopContext',
+                                action: 'cart_merged',
+                                newValue: { itemCount: mergedCart.length, guestItemCount: guestCart.length },
+                            });
+
                             // Clear guest cart from localStorage after successful merge
                             localStorage.removeItem('guest_cart');
                             // Mark cart as merged
@@ -124,7 +133,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                     // Fetch Wishlist
                     try {
                         logger.debug('[Wishlist] Fetching wishlist from backend');
-                        const wishlistRes = await api.get(API_ENDPOINTS.WISHLIST);
+                        const wishlistRes = await api.get(API_ENDPOINTS.WISHLIST.GET);
                         if (wishlistRes.data && wishlistRes.data.items) {
                             const mappedItems = wishlistRes.data.items.map((item: any) => ({
                                 ...item.Product,
@@ -141,7 +150,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
 
                     // Fetch Orders
                     try {
-                        const ordersRes = await api.get(API_ENDPOINTS.ORDERS);
+                        const ordersRes = await api.get(API_ENDPOINTS.ORDERS.LIST);
                         if (ordersRes.data) {
                             setOrders(ordersRes.data.map((order: any) => ({
                                 id: order.order_id,
@@ -215,7 +224,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
 
         if (user?.backendToken) {
             try {
-                await api.post(`${API_ENDPOINTS.CART}/items`, {
+                await api.post(API_ENDPOINTS.CART.ADD_ITEM, {
                     product_id: product.id,
                     quantity: 1,
                     size: (product as any).selectedSize || 'M',
@@ -230,6 +239,12 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                     updatedCart.push({ ...productWithPrice, quantity: 1, selectedSize: (product as any).selectedSize || 'M' } as CartItem);
                 }
                 setCart(updatedCart);
+
+                logRocketService.logStateChange({
+                    context: 'ShopContext',
+                    action: 'item_added_to_cart',
+                    newValue: { productId: product.id, cartItemCount: updatedCart.length },
+                });
             } catch (error) {
                 logger.error("Add to cart error", { error, productId: product.id });
             }
@@ -246,6 +261,12 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                     selectedSize: (product as any).selectedSize || 'M',
                     variant_id: (product as any).variant_id
                 } as CartItem]);
+
+                logRocketService.logStateChange({
+                    context: 'ShopContext',
+                    action: 'item_added_to_cart_guest',
+                    newValue: { productId: product.id, cartItemCount: cart.length + 1 },
+                });
             }
         }
         setIsCartOpen(true);
@@ -266,7 +287,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         // Sync with backend if authenticated
         if (user?.backendToken) {
             try {
-                await api.put(`${API_ENDPOINTS.CART}/items/${item.id}`, {
+                await api.put(API_ENDPOINTS.CART.UPDATE_ITEM(String(item.id)), {
                     quantity: newQuantity,
                     size: item.selectedSize || 'M'
                 });
@@ -285,7 +306,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
             logger.info('Action: Remove from Cart', { productId: itemToRemove.id, name: itemToRemove.name });
             if (user?.backendToken) {
                 try {
-                    await api.delete(`${API_ENDPOINTS.CART}/items/${itemToRemove.id}`);
+                    await api.delete(API_ENDPOINTS.CART.REMOVE_ITEM(String(itemToRemove.id)));
                 } catch (error) {
                     logger.error("Remove from cart error", { error, productId: itemToRemove.id });
                 }
@@ -294,6 +315,12 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
 
         const newCart = [...cart];
         newCart.splice(index, 1);
+
+        logRocketService.logStateChange({
+            context: 'ShopContext',
+            action: 'item_removed_from_cart',
+            newValue: { productId: itemToRemove?.id, cartItemCount: newCart.length },
+        });
         setCart(newCart);
     };
 
@@ -301,12 +328,18 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         logger.info('Action: Clear Cart');
         if (user?.backendToken) {
             try {
-                await api.delete(API_ENDPOINTS.CART);
+                await api.delete(API_ENDPOINTS.CART.GET);
             } catch (error) {
                 logger.error("Clear cart error", { error });
             }
         }
         setCart([]);
+
+        logRocketService.logStateChange({
+            context: 'ShopContext',
+            action: 'cart_cleared',
+            previousValue: { cartItemCount: cart.length },
+        });
     };
 
     const addOrder = (order: Order) => {
@@ -322,12 +355,18 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         if (!isInWishlist(product.id)) {
             if (user?.backendToken) {
                 try {
-                    await api.post(`${API_ENDPOINTS.WISHLIST}/items`, { product_id: product.id });
+                    await api.post(API_ENDPOINTS.WISHLIST.ADD_ITEM, { product_id: product.id });
                 } catch (error) {
                     logger.error('[Wishlist] Backend sync failed', { error, productId: product.id });
                 }
             }
             setWishlist([...wishlist, product]);
+
+            logRocketService.logStateChange({
+                context: 'ShopContext',
+                action: 'item_added_to_wishlist',
+                newValue: { productId: product.id, wishlistCount: wishlist.length + 1 },
+            });
         }
     };
 
@@ -338,7 +377,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                 const wishlistItem = wishlist.find(item => item.id === productId);
                 if (wishlistItem && (wishlistItem as any).wishlistItemId) {
                     const itemId = (wishlistItem as any).wishlistItemId;
-                    await api.delete(`${API_ENDPOINTS.WISHLIST}/items/${itemId}`);
+                    await api.delete(API_ENDPOINTS.WISHLIST.REMOVE_ITEM(itemId));
                 }
             } catch (error) {
                 logger.error('[Wishlist] Backend deletion failed', { error, productId });
@@ -346,6 +385,12 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         }
         const newWishlist = wishlist.filter(item => item.id !== productId);
         setWishlist(newWishlist);
+
+        logRocketService.logStateChange({
+            context: 'ShopContext',
+            action: 'item_removed_from_wishlist',
+            newValue: { productId, wishlistCount: newWishlist.length },
+        });
     };
 
     const isInWishlist = (productId: string | number) => {
@@ -359,6 +404,8 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
             addToWishlist(product);
         }
     };
+
+
 
     return (
         <ShopContext.Provider value={{

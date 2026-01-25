@@ -16,7 +16,7 @@ const sendToFile = async (payload: LogPayload) => {
     if (!isDev) return;
 
     try {
-        const logLine = `[${payload.timestamp}] [${payload.level.toUpperCase()}] [customer] ${payload.page ? `[${payload.page}] ` : ''}${payload.message}${payload.data ? ` | Data: ${JSON.stringify(payload.data)}` : ''}`;
+        const logLine = `[${payload.timestamp}] [${payload.level.toUpperCase()}] [admin] ${payload.page ? `[${payload.page}] ` : ''}${payload.message}${payload.data ? ` | Data: ${JSON.stringify(payload.data)}` : ''}`;
 
         await fetch('/api/log', {
             method: 'POST',
@@ -39,7 +39,7 @@ export const logger = {
         // Use LogRocket service for structured logging
         logRocketService.customLog(level, message, data);
 
-        // Send to local file via Vite middleware
+        // Send to local file via backend
         sendToFile(payload);
     },
 

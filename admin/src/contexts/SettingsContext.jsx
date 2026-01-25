@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import logRocketService from '../utils/logrocketService';
 
 const SettingsContext = createContext();
 
@@ -29,10 +30,22 @@ export function SettingsProvider({ children }) {
 
     const loadSettings = async () => {
         try {
+            logRocketService.logStateChange({
+                context: 'SettingsContext',
+                action: 'load_settings_attempt',
+            });
+
             const response = await api.get('/settings');
             setSettings(prev => ({ ...prev, ...response.data }));
+
+            logRocketService.logStateChange({
+                context: 'SettingsContext',
+                action: 'load_settings_success',
+                newValue: response.data,
+            });
         } catch (error) {
             console.error('Error loading settings:', error);
+            logRocketService.logError('Failed to load settings', error);
             // Keep defaults on error
         } finally {
             setLoading(false);
@@ -40,6 +53,10 @@ export function SettingsProvider({ children }) {
     };
 
     const refreshSettings = () => {
+        logRocketService.logStateChange({
+            context: 'SettingsContext',
+            action: 'refresh_settings',
+        });
         loadSettings();
     };
 

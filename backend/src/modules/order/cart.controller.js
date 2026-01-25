@@ -4,6 +4,7 @@ import ProductVariant from '../catalog/models/product_variant.model.js';
 import Product from '../catalog/models/product.model.js';
 import ProductImage from '../catalog/models/product_image.model.js';
 import Inventory from '../inventory/models/inventory.model.js';
+import Size from '../catalog/models/size.model.js';
 
 export const getCart = async (req, res) => {
     try {
@@ -45,7 +46,29 @@ export const getCart = async (req, res) => {
 export const addToCart = async (req, res) => {
     try {
         const customer_id = req.user.id;
-        const { variant_id, quantity } = req.body;
+        const { variant_id, product_id, size, quantity } = req.body;
+
+        let targetVariantId = variant_id;
+
+        // Support product_id + size
+        if (!targetVariantId && product_id && size) {
+            const sizeRecord = await Size.findOne({ where: { name: size } });
+            if (sizeRecord) {
+                const variant = await ProductVariant.findOne({
+                    where: {
+                        product_id: product_id,
+                        size_id: sizeRecord.id
+                    }
+                });
+                if (variant) {
+                    targetVariantId = variant.id;
+                }
+            }
+        }
+
+        if (!targetVariantId) {
+            return res.status(400).json({ message: 'Product variant not found or invalid product/size combination' });
+        }
 
         // Validate quantity
         if (!quantity || quantity <= 0) {
@@ -54,7 +77,7 @@ export const addToCart = async (req, res) => {
 
         // Check inventory availability
         const inventory = await Inventory.findOne({
-            where: { variant_id }
+            where: { variant_id: targetVariantId }
         });
 
         if (!inventory) {
@@ -70,7 +93,7 @@ export const addToCart = async (req, res) => {
 
         if (cart) {
             const existingItem = await CartItem.findOne({
-                where: { cart_id: cart.id, variant_id }
+                where: { cart_id: cart.id, variant_id: targetVariantId }
             });
             currentCartQuantity = existingItem ? existingItem.quantity : 0;
         }
@@ -89,7 +112,7 @@ export const addToCart = async (req, res) => {
         }
 
         const [item, created] = await CartItem.findOrCreate({
-            where: { cart_id: cart.id, variant_id },
+            where: { cart_id: cart.id, variant_id: targetVariantId },
             defaults: { quantity }
         });
 

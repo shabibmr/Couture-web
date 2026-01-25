@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
         logger.info('Page Mounted: HomePage');
         const fetchBanner = async () => {
             try {
-                const response = await api.get(API_ENDPOINTS.MARKETING.BANNERS, {
+                const response = await api.get(API_ENDPOINTS.BANNERS, {
                     params: { active: true }
                 });
                 const data = response.data;

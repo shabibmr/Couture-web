@@ -63,19 +63,33 @@ const CheckoutPage: React.FC = () => {
         setLoading(true);
 
         try {
-            // 1. Create Order in Backend
+            // 1. Create Order in Backend with complete order data
             logger.info("[CheckoutPage] Creating order in backend");
-            const orderResponse = await api.post(API_ENDPOINTS.ORDERS, {
+            const orderResponse = await api.post(API_ENDPOINTS.ORDERS.CREATE, {
                 shipping_address: formData,
-                billing_address: formData, // Simplified for now
-                // items are implicitly taken from cart on backend or we send them
+                billing_address: formData,
+                items: cart.map(item => ({
+                    product_id: item.id,
+                    quantity: item.quantity || 1,
+                    size: item.selectedSize || 'M',
+                    price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price).replace(/[^0-9.]/g, '')),
+                    variant_id: (item as any).variant_id || null
+                })),
+                subtotal: orderData.subtotal,
+                tax: orderData.tax,
+                discount: orderData.discount,
+                total_amount: orderData.total,
+                payment_method: 'razorpay',
+                currency: shopCurrency.code,
+                // Include coupon code if available from location state
+                coupon_code: (location.state as any)?.couponCode || null
             });
 
-            const backendOrderId = orderResponse.data.order.id;
+            const backendOrderId = orderResponse.data.order.id || orderResponse.data.order.order_id;
             logger.info("[CheckoutPage] Backend order created", { backendOrderId });
 
             // 2. Create Razorpay Order
-            const razorpayOrderResponse = await api.post('/payment/create-order', {
+            const razorpayOrderResponse = await api.post(API_ENDPOINTS.PAYMENT.CREATE_ORDER, {
                 order_id: backendOrderId
             });
 
@@ -92,7 +106,7 @@ const CheckoutPage: React.FC = () => {
                 handler: async (response: any) => {
                     try {
                         // 4. Verify Payment in Backend
-                        const verifyResponse = await api.post('/payment/verify', {
+                        const verifyResponse = await api.post(API_ENDPOINTS.PAYMENT.VERIFY, {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature

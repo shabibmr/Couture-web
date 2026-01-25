@@ -1,5 +1,6 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import logRocketService from './utils/logrocketService';
 import AdminLayout from './layouts/AdminLayout';
 import { SettingsProvider } from './contexts/SettingsContext';
 import Dashboard from './pages/Dashboard';
@@ -15,9 +16,33 @@ import Settings from './pages/Settings';
 
 import Login from './pages/Login';
 
+// Navigation tracker component
+const NavigationTracker = () => {
+  const location = useLocation();
+  const prevLocationRef = { current: '/' };
+
+  useEffect(() => {
+    const from = prevLocationRef.current;
+    const to = location.pathname;
+
+    if (from !== to) {
+      logRocketService.logNavigation({
+        from,
+        to,
+        page: to,
+      });
+
+      prevLocationRef.current = to;
+    }
+  }, [location]);
+
+  return null;
+};
+
 function App() {
   return (
     <SettingsProvider>
+      <NavigationTracker />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<AdminLayout />}>

@@ -5,6 +5,7 @@ import CartItem from './models/cart_item.model.js';
 import ProductVariant from '../catalog/models/product_variant.model.js';
 import Product from '../catalog/models/product.model.js';
 import Inventory from '../inventory/models/inventory.model.js';
+import Size from '../catalog/models/size.model.js';
 import sequelize from '../../config/database.js';
 
 export const createOrder = async (req, res) => {
@@ -12,112 +13,196 @@ export const createOrder = async (req, res) => {
     const t = await sequelize.transaction();
     try {
         const customer_id = req.user.id;
-        const { shipping_address, billing_address, shipping_method_id } = req.body;
-        console.log("[OrderController] Payload - shipping_address:", shipping_address);
+        const {
+            shipping_address,
+            billing_address,
+            shipping_method_id,
+            items,
+            payment_method,
+            currency,
+            coupon_code
+        } = req.body;
+        console.log("[OrderController] Payload - items count:", items ? items.length : 0);
 
-        // Get Cart
-        const cart = await Cart.findOne({
-            where: { customer_id },
-            include: [
-                {
+        let orderItemsData = [];
+        let itemsSource = 'payload'; // 'payload' or 'cart'
+
+        // 1. Resolve Items (from Payload or Cart)
+        if (items && Array.isArray(items) && items.length > 0) {
+            // Use provided items
+            for (const item of items) {
+                let variantId = item.variant_id;
+
+                // Resolve variant if missing
+                if (!variantId && item.product_id && item.size) {
+                    const sizeRecord = await Size.findOne({ where: { name: item.size } });
+                    if (sizeRecord) {
+                        const variant = await ProductVariant.findOne({
+                            where: { product_id: item.product_id, size_id: sizeRecord.id }
+                        });
+                        if (variant) variantId = variant.id;
+                    }
+                }
+
+                if (!variantId) {
+                    throw new Error(`Could not identify product variant for item: ${item.product_id} / ${item.size}`);
+                }
+
+                // Fetch Variant Details for Pricing (Security)
+                const variantData = await ProductVariant.findByPk(variantId, {
+                    include: [Product]
+                });
+
+                if (!variantData) {
+                    throw new Error(`Variant not found: ${variantId}`);
+                }
+
+                const price = parseFloat(variantData.variant_price) || parseFloat(variantData.Product.sale_price) || parseFloat(variantData.Product.base_price);
+
+                orderItemsData.push({
+                    variant_id: variantId,
+                    product_id: variantData.product_id, // Ensure we store product_id
+                    product_name: variantData.Product.name,
+                    variant_sku: variantData.sku,
+                    quantity: item.quantity,
+                    unit_price: price, // Use DB price, ignore frontend price
+                    total_price: price * item.quantity,
+                    size: item.size
+                });
+            }
+        } else {
+            // Fallback to Cart
+            itemsSource = 'cart';
+            const cart = await Cart.findOne({
+                where: { customer_id },
+                include: [{
                     model: CartItem,
                     as: 'items',
-                    include: [
-                        {
-                            model: ProductVariant,
-                            include: [Product]
-                        }
-                    ]
-                }
-            ],
-            transaction: t
-        });
-
-        if (!cart || !cart.items.length) {
-            console.warn("[OrderController] Cart is empty for customer:", customer_id);
-            await t.rollback();
-            return res.status(400).json({ message: 'Cart is empty' });
-        }
-        console.log("[OrderController] Cart found with", cart.items.length, "items");
-
-        // Calculate Totals
-        let subtotal = 0;
-        const orderItemsData = [];
-
-        for (const item of cart.items) {
-            const price = parseFloat(item.ProductVariant.variant_price) || parseFloat(item.ProductVariant.Product.base_price);
-            const total = price * item.quantity;
-            subtotal += total;
-
-            orderItemsData.push({
-                variant_id: item.variant_id,
-                product_name: item.ProductVariant.Product.name,
-                variant_sku: item.ProductVariant.sku,
-                quantity: item.quantity,
-                unit_price: price,
-                total_price: total
+                    include: [{
+                        model: ProductVariant,
+                        include: [Product, Size] // Include Size to map name
+                    }]
+                }],
+                transaction: t
             });
+
+            if (!cart || !cart.items || cart.items.length === 0) {
+                await t.rollback();
+                return res.status(400).json({ message: 'No items in order or cart' });
+            }
+
+            for (const item of cart.items) {
+                const price = parseFloat(item.ProductVariant.variant_price) || parseFloat(item.ProductVariant.Product.sale_price) || parseFloat(item.ProductVariant.Product.base_price);
+
+                orderItemsData.push({
+                    variant_id: item.variant_id,
+                    product_id: item.ProductVariant.product_id,
+                    product_name: item.ProductVariant.Product.name,
+                    variant_sku: item.ProductVariant.sku,
+                    quantity: item.quantity,
+                    unit_price: price,
+                    total_price: price * item.quantity,
+                    size: item.ProductVariant.Size?.name // Map size name for legacy/consistency
+                });
+            }
+        }
+
+        // 2. Process Inventory Reservation & Validation
+        let subtotal = 0;
+        for (const item of orderItemsData) {
+            subtotal += item.total_price;
 
             // Check and Reserve Stock
             const inventory = await Inventory.findOne({
                 where: { variant_id: item.variant_id },
                 transaction: t,
-                lock: true // Pessimistic lock to prevent race conditions
+                lock: true // Pessimistic lock
             });
 
             if (!inventory) {
-                await t.rollback();
-                return res.status(400).json({ message: `Inventory not found for ${item.ProductVariant.sku}` });
+                throw new Error(`Inventory not found for ${item.variant_sku}`);
             }
 
             const available = inventory.quantity - inventory.reserved_quantity;
             if (available < item.quantity) {
-                await t.rollback();
-                return res.status(400).json({ message: `Insufficient stock for ${item.ProductVariant.sku}. Available: ${available}` });
+                throw new Error(`Insufficient stock for ${item.variant_sku}. Available: ${available}`);
             }
 
             // Reserve stock
-            console.log("[OrderController] Reserving stock for SKU:", item.ProductVariant.sku, "Qty:", item.quantity);
             inventory.reserved_quantity += item.quantity;
             await inventory.save({ transaction: t });
         }
 
-        // Simple fixed shipping for now or fetch from DB
-        const shipping_amount = 50.00;
-        const tax_amount = subtotal * 0.18; // 18% GST example
-        const total_amount = subtotal + shipping_amount + tax_amount;
+        // 3. Calculate Totals
+        // Simple fixed taxes/shipping for now (or strictly match existing logic)
+        const shipping_amount = 50.00; // Fixed for now, could be dynamic
+        const tax_amount = subtotal * 0.18; // 18% GST default
+        let discount_amount = 0; // Handle coupon logic if needed (skipped for phase 1 direct port)
 
-        // Create Order
+        // If frontend provided discount/coupon, we really should validate it. 
+        // For Phase 1, we will just recalculate based on simple rules to be safe.
+        // If payment gateway authorized a specific amount, we should match it?
+        // Let's stick to trusted backend calculation.
+
+        const total_amount = subtotal + shipping_amount + tax_amount - discount_amount;
+
+        // 4. Create Order
         const order = await Order.create({
             order_number: `ORD-${Date.now()}`,
             customer_id,
             subtotal,
             shipping_amount,
             tax_amount,
+            discount_amount,
             total_amount,
-            shipping_address,
-            billing_address,
+            shipping_address: typeof shipping_address === 'string' ? shipping_address : JSON.stringify(shipping_address),
+            billing_address: typeof billing_address === 'string' ? billing_address : JSON.stringify(billing_address),
             shipping_method_id,
+            payment_method: payment_method || 'razorpay',
+            currency_code: currency || 'INR',
+            coupon_code: coupon_code || null,
             status: 'pending'
         }, { transaction: t });
 
-        // Create Order Items
+        // 5. Create Order Items
         await OrderItem.bulkCreate(
-            orderItemsData.map(item => ({ ...item, order_id: order.id })),
+            orderItemsData.map(item => ({
+                order_id: order.id,
+                variant_id: item.variant_id,
+                product_name: item.product_name,
+                variant_sku: item.variant_sku,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total_price: item.total_price
+                // Note: OrderItem model might not have product_id/size columns based on schema,
+                // checking schema... ACTUAL_DB_SCHEMA says OrderItem has: 
+                // order_id, variant_id, product_name, variant_sku, quantity, unit_price, total_price.
+                // It does NOT have product_id or size. So we omit them.
+            })),
             { transaction: t }
         );
 
-        // Clear Cart
-        await CartItem.destroy({ where: { cart_id: cart.id }, transaction: t });
+        // 6. Clear Cart (Always clear cart if order placed successfully)
+        await CartItem.destroy({
+            where: {
+                cart_id: { [sequelize.Sequelize.Op.in]: sequelize.literal(`(SELECT id FROM carts WHERE customer_id = '${customer_id}')`) }
+            },
+            transaction: t
+        });
 
         await t.commit();
-        console.log("[OrderController] Order created successfully. Order Number:", order.order_number);
+        console.log("[OrderController] Order created successfully:", order.order_number);
 
-        res.status(201).json({ message: 'Order created successfully', order });
+        // Return full order details
+        const createdOrder = await Order.findByPk(order.id, {
+            include: [{ model: OrderItem, as: 'items' }]
+        });
+
+        res.status(201).json({ message: 'Order created successfully', order: createdOrder });
     } catch (error) {
         await t.rollback();
         console.error('Error creating order:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: error.message || 'Server error' });
     }
 };
 

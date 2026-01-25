@@ -1,28 +1,29 @@
-import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { InternalAxiosRequestConfig } from 'axios';
 import logRocketService from '../utils/logrocketService';
-import { API_BASE_URL } from '../config/api.config';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Request Interceptor: Attach Backend JWT if available and log requests
+// Request interceptor for adding auth token if available and logging
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const startTime = Date.now();
         (config as any).metadata = { startTime };
 
-        const token = localStorage.getItem('backend_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        const token = localStorage.getItem('token');
+        if (token && config.headers) {
+            config.headers['Authorization'] = `Bearer ${token}`;
 
-            // Log token retrieval operation
+            // Log token retrieval
             logRocketService.logTokenOperation({
                 operation: 'get',
-                tokenType: 'backend_token',
+                tokenType: 'token',
                 success: true,
             });
         }
@@ -36,15 +37,15 @@ api.interceptors.request.use(
 
         return config;
     },
-    (error: unknown) => {
+    (error) => {
         logRocketService.logError('API request interceptor error', error);
         return Promise.reject(error);
     }
 );
 
-// Response Interceptor: Handle errors globally and log responses
+// Response interceptor for handling common errors and logging
 api.interceptors.response.use(
-    (response: AxiosResponse) => {
+    (response) => {
         const duration = (response.config as any).metadata?.startTime
             ? Date.now() - (response.config as any).metadata.startTime
             : undefined;
@@ -60,7 +61,7 @@ api.interceptors.response.use(
 
         return response;
     },
-    (error: any) => {
+    (error) => {
         const duration = (error.config as any)?.metadata?.startTime
             ? Date.now() - (error.config as any).metadata.startTime
             : undefined;
@@ -78,15 +79,17 @@ api.interceptors.response.use(
         });
 
         if (error.response && error.response.status === 401) {
-            // Handle unauthorized (e.g., clear token, logout)
-            localStorage.removeItem('backend_token');
+            // Handle unauthorized access by clearing invalid token and redirecting
+            localStorage.removeItem('token');
 
             // Log token removal
             logRocketService.logTokenOperation({
                 operation: 'remove',
-                tokenType: 'backend_token',
+                tokenType: 'token',
                 success: true,
             });
+
+            window.location.href = '/login';
         }
         return Promise.reject(error);
     }
