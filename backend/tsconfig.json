@@ -1,0 +1,75 @@
+{
+    "compilerOptions": {
+        /* Language and Environment */
+        "target": "ES2020",
+        "lib": [
+            "ES2020"
+        ],
+        "module": "ESNext",
+        "jsx": "preserve",
+        /* Modules */
+        "moduleResolution": "bundler",
+        "baseUrl": "./src",
+        "paths": {
+            "@modules/*": [
+                "modules/*"
+            ],
+            "@config/*": [
+                "config/*"
+            ],
+            "@middleware/*": [
+                "middleware/*"
+            ],
+            "@types/*": [
+                "types/*"
+            ],
+            "@scripts/*": [
+                "scripts/*"
+            ]
+        },
+        "resolveJsonModule": true,
+        "allowImportingTsExtensions": true,
+        /* Emit */
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "removeComments": true,
+        "noEmit": true,
+        /* Interop Constraints */
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        /* Type Checking */
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+        /* Completeness */
+        "skipLibCheck": true,
+        /* JavaScript Support (for gradual migration) */
+        "allowJs": true,
+        "checkJs": false
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "**/*.test.ts",
+        "**/*.test.js"
+    ],
+    "references": [
+        {
+            "path": "./tsconfig.node.json"
+        }
+    ]
+}
