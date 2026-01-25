@@ -35,7 +35,7 @@ This document provides a comprehensive list of all API calls used in the Couture
 ```json
 {
   "email": "admin@example.com",
-  "password": "SecurePassword123"
+  "password": "SecurePassword123123"
 }
 ```
 
