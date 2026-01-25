@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # Get the directory where the script is located
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo -e "\033[36mChecking service status...\033[0m"
 echo "----------------------------------"
 
-if [ ! -f "$ROOT/.pids" ]; then
-    echo -e "\033[31mNo .pids file found. Services are likely not running.\033[0m"
+if [ ! -f "$PROJECT_ROOT/logs/.pids" ]; then
+    echo -e "\033[31mNo .pids file found in logs/. Services are likely not running.\033[0m"
 else
     # Process PIDs line by line
     # Format in .pids: Admin, Backend, Customer
@@ -20,7 +21,7 @@ else
             echo -e "\033[31m[STOPPED]\033[0m ${SERVICES[$i]} (PID: $pid)"
         fi
         ((i++))
-    done < "$ROOT/.pids"
+    done < "$PROJECT_ROOT/logs/.pids"
 fi
 
 echo "----------------------------------"
