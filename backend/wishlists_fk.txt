@@ -1,0 +1,5 @@
+TABLE_NAME	COLUMN_NAME	CONSTRAINT_NAME	REFERENCED_TABLE_NAME	REFERENCED_COLUMN_NAME
+wishlists	customer_id	wishlists_ibfk_1	customers	id
+wishlists	product_id	wishlists_ibfk_2	products	id
+wishlists	customer_id	wishlists_ibfk_1	customers	id
+wishlists	product_id	wishlists_ibfk_2	products	id

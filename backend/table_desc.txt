@@ -1,0 +1,12 @@
+Field	Type	Null	Key	Default	Extra
+id	char(36)	NO	PRI	NULL	
+key	varchar(255)	NO	UNI	NULL	
+value	text	YES		NULL	
+description	varchar(255)	YES		NULL	
+createdAt	timestamp	NO		current_timestamp()	
+updatedAt	timestamp	NO		current_timestamp()	on update current_timestamp()
+Field	Type	Null	Key	Default	Extra
+id	char(36)	NO	PRI	NULL	
+customer_id	char(36)	NO	MUL	NULL	
+product_id	char(36)	NO	MUL	NULL	
+added_at	timestamp	NO		current_timestamp()	

@@ -1,0 +1,7 @@
+Table	Non_unique	Key_name	Seq_in_index	Column_name	Collation	Cardinality	Sub_part	Packed	Null	Index_type	Comment	Index_comment
+wishlists	0	PRIMARY	1	id	A	0	NULL	NULL		BTREE		
+wishlists	0	customer_id	1	customer_id	A	0	NULL	NULL		BTREE		
+wishlists	0	customer_id	2	product_id	A	0	NULL	NULL		BTREE		
+wishlists	0	idx_customer_id_unique	1	customer_id	A	0	NULL	NULL		BTREE		
+wishlists	1	idx_wishlists_customer	1	customer_id	A	0	NULL	NULL		BTREE		
+wishlists	1	idx_wishlists_product	1	product_id	A	0	NULL	NULL		BTREE		

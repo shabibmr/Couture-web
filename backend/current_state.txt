@@ -1,0 +1,44 @@
+Field	Type	Null	Key	Default	Extra
+id	char(36)	NO	PRI	NULL	
+key	varchar(255)	NO	UNI	NULL	
+value	text	YES		NULL	
+description	varchar(255)	YES		NULL	
+created_at	timestamp	NO		current_timestamp()	
+updated_at	timestamp	NO		current_timestamp()	on update current_timestamp()
+Field	Type	Null	Key	Default	Extra
+id	char(36)	NO	PRI	NULL	
+customer_id	char(36)	NO	UNI	NULL	
+product_id	char(36)	NO	MUL	NULL	
+created_at	timestamp	NO		current_timestamp()	
+updated_at	timestamp	NO		current_timestamp()	on update current_timestamp()
+Tables_in_couture_db
+admins
+audit_logs
+banners
+brands
+cart_items
+carts
+categories
+colors
+coupons
+customer_addresses
+customers
+inventory
+newsletters
+order_items
+orders
+payment_gateways
+payment_transactions
+product_images
+product_variants
+products
+refunds
+reviews
+seo_metadata
+settings
+shipments
+shipping_methods
+sizes
+taxes
+wishlist_items
+wishlists
