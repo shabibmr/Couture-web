@@ -10,7 +10,7 @@ import { useAuthGuard } from '../hooks/useAuthGuard';
 import logger from '../utils/logger';
 
 const CartPage: React.FC = () => {
-    const { cart, removeFromCart, updateCartItemQuantity, formatPrice } = useShop();
+    const { cart, removeFromCart, updateCartItemQuantity, formatPrice, setIsCartOpen } = useShop();
     const { requireAuth } = useAuthGuard();
     const navigate = useNavigate();
 
@@ -92,6 +92,8 @@ const CartPage: React.FC = () => {
     const handleCheckout = () => {
         // Check authentication before proceeding to checkout
         if (!requireAuth({ returnTo: '/checkout' })) return;
+        // Close cart when navigating to checkout
+        setIsCartOpen(false);
         navigate('/checkout', { state: { subtotal, tax, discount, total } });
     };
 
@@ -127,8 +129,20 @@ const CartPage: React.FC = () => {
                                 className="flex gap-6 md:gap-10 border-b border-stone-100 pb-8"
                             >
                                 <div className="w-24 md:w-32 aspect-[3/4] bg-stone-200 flex-shrink-0 relative overflow-hidden">
-                                    {item.image ? (
-                                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                    {item.featured_image || item.image ? (
+                                        <img
+                                            src={item.featured_image || item.image}
+                                            alt={item.name || item.title}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                // Fallback if image fails to load
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                if (target.parentElement) {
+                                                    target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-stone-400 font-serif italic bg-stone-300/50">Img</div>';
+                                                }
+                                            }}
+                                        />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-stone-400 font-serif italic bg-stone-300/50">
                                             Img

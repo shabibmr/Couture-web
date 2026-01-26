@@ -1,23 +1,55 @@
 # Log Analysis Report
 
-## Summary
-The analysis of `customer.log` and `backend.log` reveals a critical system-wide failure: **the database `couture_db` is currently empty (contains no tables)**. This state prevents all core functionalities, including user authentication, settings retrieval, and product catalog access.
+## Analysis Summary
+**Log Files Analyzed:** `admin.log`, `backend.log`, `customer.log`
+**Status:** Services started successfully after resolving multiple port conflicts.
+**Critical Errors:** None found.
 
-## Detailed Findings
+## Warnings and Errors (Chronological Order)
 
-| Step | Expected State Change | Actual State Change | Status |
-| :--- | :--- | :--- | :--- |
-| **1. Database Initialization** | Backend connects to MySQL and finds the schema ready for use. | `SHOW TABLES` returns `[]`. All tables are missing from the `couture_db` database. | **FAILURE** |
-| **2. Fetch System Settings** | `GET /api/settings` should return global shop configuration. | **500 Server Error**. Backend logs: `SequelizeDatabaseError: Table 'couture_db.settings' doesn't exist`. | **FAILURE** |
-| **3. Firebase User Sync** | `POST /api/auth/firebase-sync` should link Firebase UID with a local `Customer` record. | **401/500 Error**. Backend logs: `SequelizeDatabaseError: Table 'couture_db.customers' doesn't exist`. | **FAILURE** |
-| **4. Fetch Shop Products** | `GET /api/products` should return the list of items for the shop page. | **500 Server Error**. Inferred missing `products` table as per the empty database state. | **FAILURE** |
-| **5. Wishlist Operation** | `GET /api/wishlist` should return user's saved items. | **500 Server Error**. Inferred missing `wishlists` table. (Recent logs show a momentary success which may indicate a database wipe occurred recently). | **FAILURE** |
+The following warnings regarding port availability were captured during the startup sequence:
 
-## Root Causes
-1.  **Missing Database Schema**: The primary root cause is the absence of any tables in the MySQL database `couture_db`. The backend is configured NOT to sync models automatically (`sequelize.sync()` is commented out in `src/app.ts`), expecting manual schema management via SQL scripts.
-2.  **Schema Inconsistency (Previous Note)**: Even if the schema is applied using `setup_db_mysql.sql`, the `settings` table definition uses camelCase `createdAt`/`updatedAt` while the backend likely expects snake_case `created_at`/`updated_at` (consistent with other tables and standard Sequelize default configuration in this project).
+### Admin Service (`admin.log`)
+1.  `Port 5174 is in use, trying another one...`
+2.  `Port 5175 is in use, trying another one...`
+3.  `Port 5176 is in use, trying another one...`
+4.  `Port 5177 is in use, trying another one...`
+5.  `Port 5178 is in use, trying another one...`
+6.  `Port 5179 is in use, trying another one...`
+7.  `Port 5180 is in use, trying another one...`
+8.  `Port 5181 is in use, trying another one...`
+9.  `Port 5182 is in use, trying another one...`
+10. `Port 5183 is in use, trying another one...`
+11. `Port 5184 is in use, trying another one...`
+12. `Port 5185 is in use, trying another one...`
+13. `Port 5186 is in use, trying another one...`
+14. `Port 5187 is in use, trying another one...`
+15. `Port 5188 is in use, trying another one...`
+16. `Port 5189 is in use, trying another one...`
 
-## Recommended Actions
-1.  **Execute Schema Setup**: Run `setup_db_mysql.sql` (or `run_db_setup.sh`) to recreate the missing tables.
-2.  **Verify Column Naming**: Fix the `settings` table definition in `setup_db_mysql.sql` (lines 471-472) to use `created_at` and `updated_at` for consistency with the rest of the database and Sequelize models.
-3.  **Seed Data**: After schema setup, run `seed_test_data.js` or similar scripts to populate the system with initial products and configuration.
+### Customer Service (`customer.log`)
+17. `Port 5173 is in use, trying another one...`
+18. `Port 5174 is in use, trying another one...`
+19. `Port 5175 is in use, trying another one...`
+20. `Port 5176 is in use, trying another one...`
+21. `Port 5177 is in use, trying another one...`
+22. `Port 5178 is in use, trying another one...`
+23. `Port 5179 is in use, trying another one...`
+24. `Port 5180 is in use, trying another one...`
+25. `Port 5181 is in use, trying another one...`
+26. `Port 5182 is in use, trying another one...`
+27. `Port 5183 is in use, trying another one...`
+28. `Port 5184 is in use, trying another one...`
+29. `Port 5185 is in use, trying another one...`
+30. `Port 5186 is in use, trying another one...`
+31. `Port 5187 is in use, trying another one...`
+32. `Port 5188 is in use, trying another one...`
+
+### Backend Service (`backend.log`)
+No errors or warnings found.
+
+---
+**Note:** The system resolved these conflicts automatically.
+- **Admin** settled on port **5190**.
+- **Customer** settled on port **5189**.
+- **Backend** started cleanly on port **5000**.

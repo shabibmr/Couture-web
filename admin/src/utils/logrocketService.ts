@@ -95,7 +95,22 @@ class LogRocketService {
 
         const level: LogLevel = data.error ? 'error' : data.status && data.status >= 400 ? 'warn' : 'info';
         this.log(level, `[API ${data.method}] ${data.url} - ${data.status || 'pending'}`, logData);
-        LogRocket.track('ApiCall', logData);
+
+        // LogRocket.track only accepts primitive types, so stringify objects
+        const trackData = {
+            method: logData.method,
+            url: logData.url,
+            status: logData.status,
+            duration: logData.duration,
+            timestamp: logData.timestamp,
+            page: logData.page,
+            portal: logData.portal,
+            requestData: logData.requestData ? JSON.stringify(logData.requestData) : undefined,
+            responseData: logData.responseData ? JSON.stringify(logData.responseData) : undefined,
+            error: logData.error ? JSON.stringify(logData.error) : undefined,
+        };
+
+        LogRocket.track('ApiCall', trackData);
     }
 
     /**

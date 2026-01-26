@@ -10,9 +10,12 @@ const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
     : null;
 
 if (serviceAccount) {
+    const projectId = process.env.FIREBASE_PROJECT_ID || serviceAccount.project_id;
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential.cert(serviceAccount),
+        projectId: projectId
     });
+    console.log(`Firebase Admin initialized with service account for project: ${projectId}`);
 } else {
     // Fallback for development if no service account is provided
     const projectId = process.env.FIREBASE_PROJECT_ID;

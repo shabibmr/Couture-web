@@ -39,7 +39,7 @@ const HomePage: React.FC = () => {
     }, []);
 
     // Default values if no banner is found
-    const bgImage = banner?.image_url || "/hero_image.png";
+    const bgImage = banner?.image_url || "/hero_image.webp";
     const subtitle = banner?.description || "Everyday / Everywhere 2026";
     const link = banner?.link_url || "/shop";
 
@@ -84,6 +84,11 @@ const HomePage: React.FC = () => {
                             src={bgImage}
                             alt="Hero"
                             className="w-full h-full object-cover object-center"
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = "/hero_image.webp";
+                            }}
                         />
                     </picture>
                 </motion.div>

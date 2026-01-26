@@ -81,11 +81,18 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                     try {
                         const cartRes = await api.get(API_ENDPOINTS.CART.GET);
                         if (cartRes.data && cartRes.data.items) {
-                            const backendCart = cartRes.data.items.map((item: any) => ({
-                                ...item.Product,
-                                quantity: item.quantity,
-                                selectedSize: item.size
-                            }));
+                            const backendCart = cartRes.data.items.map((item: any) => {
+                                const product = item.ProductVariant?.Product || {};
+                                return {
+                                    ...product,
+                                    image: product.featured_image || product.image || '',
+                                    featured_image: product.featured_image,
+                                    price: product.sale_price || product.base_price || 0,
+                                    quantity: item.quantity,
+                                    selectedSize: item.ProductVariant?.Size?.name || item.size || 'M',
+                                    variant_id: item.variant_id
+                                };
+                            });
 
                             // Merge guest cart with backend cart
                             // Create a map of backend items by product ID
@@ -137,6 +144,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                         if (wishlistRes.data && wishlistRes.data.items) {
                             const mappedItems = wishlistRes.data.items.map((item: any) => ({
                                 ...item.Product,
+                                image: item.Product?.featured_image || item.Product?.image || '',
                                 wishlistItemId: item.id
                             }));
                             logger.info(`[Wishlist] Loaded ${mappedItems.length} items from backend`);
@@ -157,12 +165,15 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                                 date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                                 total: order.total_amount,
                                 status: order.order_status,
-                                items: order.Items.map((item: any) => ({
-                                    title: item.Product?.name || 'Product',
-                                    price: item.price,
-                                    image: item.Product?.featured_image || '',
-                                    quantity: item.quantity
-                                }))
+                                items: order.Items.map((item: any) => {
+                                    const product = item.ProductVariant?.Product || item.Product || {};
+                                    return {
+                                        title: product.name || 'Product',
+                                        price: item.price,
+                                        image: product.featured_image || product.image || '',
+                                        quantity: item.quantity
+                                    };
+                                })
                             })));
                         }
                     } catch (e) {

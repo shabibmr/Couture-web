@@ -18,7 +18,7 @@ DB_CONFIG = {
 
 BASE_URL = "http://localhost:5000/api"
 CSV_PATH = "admin/plist1.csv"
-IMAGES_DIR = "prodimages"
+IMAGES_DIR = "png_files"
 
 def get_image_base64(filename):
     """Converts an image file to a Base64 string."""

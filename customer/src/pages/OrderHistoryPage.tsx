@@ -55,7 +55,7 @@ const OrderHistoryPage: React.FC = () => {
                             <div className="flex gap-4 overflow-x-auto pb-4 mb-4 border-b border-stone-100 custom-scrollbar">
                                 {order.items.map((item, idx) => (
                                     <div key={idx} className="flex-shrink-0 w-20 h-24 bg-stone-200 rounded overflow-hidden">
-                                        <img src={item.image} alt="item" className="w-full h-full object-cover" />
+                                        <img src={item.featured_image || item.image} alt="item" className="w-full h-full object-cover" />
                                     </div>
                                 ))}
                             </div>
