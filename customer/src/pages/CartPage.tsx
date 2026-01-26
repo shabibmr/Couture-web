@@ -90,10 +90,11 @@ const CartPage: React.FC = () => {
     };
 
     const handleCheckout = () => {
-        // Check authentication before proceeding to checkout
-        if (!requireAuth({ returnTo: '/checkout' })) return;
         // Close cart when navigating to checkout
         setIsCartOpen(false);
+        // Check authentication before proceeding to checkout
+        if (!requireAuth({ returnTo: '/checkout' })) return;
+
         navigate('/checkout', { state: { subtotal, tax, discount, total } });
     };
 

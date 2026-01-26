@@ -38,6 +38,8 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
 
     // Ref to track if cart has been merged with backend
     const cartMergedRef = useRef(false);
+    // Ref to prevent concurrent merge operations (race condition fix)
+    const mergeInProgressRef = useRef(false);
 
     // Fetch Settings
     useEffect(() => {
@@ -61,7 +63,9 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
     // Sync Cart and Wishlist on login
     useEffect(() => {
         const fetchUserData = async () => {
-            if (user?.backendToken && !cartMergedRef.current) {
+            // Check both merge completion AND in-progress status to prevent race conditions
+            if (user?.backendToken && !cartMergedRef.current && !mergeInProgressRef.current) {
+                mergeInProgressRef.current = true;
                 setIsLoading(true);
                 setError(null);
 
@@ -185,10 +189,12 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                     setError("Failed to load user data");
                 } finally {
                     setIsLoading(false);
+                    mergeInProgressRef.current = false; // Reset merge-in-progress flag
                 }
             } else if (!user?.backendToken) {
-                // Reset merge ref on logout
+                // Reset merge refs on logout
                 cartMergedRef.current = false;
+                mergeInProgressRef.current = false;
                 // Clear backend state on logout, but keep local cart for guest users
                 setWishlist([]);
                 setOrders([]);
