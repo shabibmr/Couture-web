@@ -14,16 +14,24 @@ import {
 // Address Routes
 import { getAddresses, createAddress, updateAddress, deleteAddress } from './address.controller.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
+import { validate } from '../../middleware/validate.middleware.js';
+import {
+    registerSchema,
+    loginSchema,
+    syncFirebaseUserSchema,
+    requestPasswordResetSchema,
+    resetPasswordSchema
+} from './auth.validation.js';
 
 const router = express.Router();
 
 // Auth Routes
-router.post('/register', registerCustomer);
-router.post('/login', loginCustomer);
-router.post('/admin/login', loginAdmin);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
-router.post('/firebase-sync', syncFirebaseUser);
+router.post('/register', validate(registerSchema), registerCustomer);
+router.post('/login', validate(loginSchema), loginCustomer);
+router.post('/admin/login', validate(loginSchema), loginAdmin);
+router.post('/forgot-password', validate(requestPasswordResetSchema), forgotPassword);
+router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
+router.post('/firebase-sync', validate(syncFirebaseUserSchema), syncFirebaseUser);
 router.get('/me', authenticate, getCurrentUser);
 router.put('/me', authenticate, updateCurrentUser);
 
