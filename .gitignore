@@ -30,3 +30,5 @@ dist-ssr
 prodimages/
 
 db_bk.sql
+customer/.env
+customer/.env
