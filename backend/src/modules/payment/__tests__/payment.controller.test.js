@@ -93,8 +93,8 @@ describe('Payment Controller', () => {
 
     describe('createRazorpayOrder', () => {
         it('should create razorpay order', async () => {
-            req.body = { order_id: 100 };
-            const order = { id: 100, total_amount: 500, status: 'pending', order_number: 'ORD-123' };
+            req.body = { order_id: '8a9409eb-c96a-4ce8-b068-be9d3de793b7' };
+            const order = { id: '8a9409eb-c96a-4ce8-b068-be9d3de793b7', total_amount: 500, status: 'pending', order_number: 'ORD-123' };
             mockOrder.findOne.mockResolvedValue(order);
 
             mockRazorpayInstance.orders.create.mockResolvedValue({ id: 'rzp_123', currency: 'INR', amount: 50000 });
@@ -121,7 +121,7 @@ describe('Payment Controller', () => {
 
             const transaction = {
                 id: 1,
-                order_id: 100,
+                order_id: '8a9409eb-c96a-4ce8-b068-be9d3de793b7',
                 status: 'pending',
                 gateway_response: {},
                 update: jest.fn().mockResolvedValue(true)
@@ -129,7 +129,7 @@ describe('Payment Controller', () => {
             mockPaymentTransaction.findOne.mockResolvedValue(transaction);
 
             const order = {
-                id: 100,
+                id: '8a9409eb-c96a-4ce8-b068-be9d3de793b7',
                 update: jest.fn().mockResolvedValue(true),
                 Customer: { id: 1, email: 'test' }
             };

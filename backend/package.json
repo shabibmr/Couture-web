@@ -8,7 +8,8 @@
     "dev": "tsx watch src/app.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "db:sync": "node scripts/sync_missing_tables.js"
   },
   "keywords": [],
   "author": "",

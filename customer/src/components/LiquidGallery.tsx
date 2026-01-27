@@ -22,7 +22,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ id, title, name, code, price,
 
     // Handle different field names from backend/frontend mismatch
     const displayTitle = name || title;
-    const displayImage = featured_image || image;
+    const displayImage = image;
     const displayPrice = sale_price ? `₹${sale_price}` : (base_price ? `₹${base_price}` : price);
 
     return (
@@ -74,7 +74,11 @@ const LiquidGallery: React.FC = () => {
                 if (response.data) {
                     // Handle paginated response: {total, pages, currentPage, data: [...]}
                     const productsData = response.data.data || response.data;
-                    setProducts(Array.isArray(productsData) ? productsData : []);
+                    const normalizedProducts = (Array.isArray(productsData) ? productsData : []).map((p: any) => ({
+                        ...p,
+                        image: p.image || p.featured_image || ''
+                    }));
+                    setProducts(normalizedProducts);
                 }
             } catch (error) {
                 console.error("Failed to fetch products for gallery", error);

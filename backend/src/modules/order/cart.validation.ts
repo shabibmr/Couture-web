@@ -53,11 +53,11 @@ export const updateCartItemSchema = Joi.object({
 });
 
 export const cartItemIdSchema = Joi.object({
-    id: Joi.number().integer().positive().required()
+    id: Joi.string().uuid().required()
         .messages({
-            'number.base': 'Item ID must be a number',
-            'number.integer': 'Item ID must be an integer',
-            'number.positive': 'Item ID must be positive',
+            'string.base': 'Item ID must be a string',
+            'string.guid': 'Item ID must be a valid UUID',
+            'string.uuid': 'Item ID must be a valid UUID',
             'any.required': 'Item ID is required'
         })
 });

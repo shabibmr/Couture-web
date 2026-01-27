@@ -89,12 +89,12 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                                 const product = item.ProductVariant?.Product || {};
                                 return {
                                     ...product,
-                                    image: product.featured_image || product.image || '',
-                                    featured_image: product.featured_image,
+                                    image: product.image || product.featured_image || '', // Normalize to image
                                     price: product.sale_price || product.base_price || 0,
                                     quantity: item.quantity,
                                     selectedSize: item.ProductVariant?.Size?.name || item.size || 'M',
-                                    variant_id: item.variant_id
+                                    variant_id: item.variant_id,
+                                    cartItemId: item.id
                                 };
                             });
 
@@ -148,7 +148,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                         if (wishlistRes.data && wishlistRes.data.items) {
                             const mappedItems = wishlistRes.data.items.map((item: any) => ({
                                 ...item.Product,
-                                image: item.Product?.featured_image || item.Product?.image || '',
+                                image: item.Product?.image || item.Product?.featured_image || '', // Normalize to image
                                 wishlistItemId: item.id
                             }));
                             logger.info(`[Wishlist] Loaded ${mappedItems.length} items from backend`);
@@ -163,18 +163,19 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                     // Fetch Orders
                     try {
                         const ordersRes = await api.get(API_ENDPOINTS.ORDERS.LIST);
-                        if (ordersRes.data) {
-                            setOrders(ordersRes.data.map((order: any) => ({
-                                id: order.order_id,
-                                date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        if (ordersRes.data && ordersRes.data.data) {
+                            setOrders(ordersRes.data.data.map((order: any) => ({
+                                id: order.order_number || `#${order.id}`,
+                                date: new Date(order.order_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                                 total: order.total_amount,
-                                status: order.order_status,
-                                items: order.Items.map((item: any) => {
-                                    const product = item.ProductVariant?.Product || item.Product || {};
+                                status: order.status,
+                                items: (order.items || []).map((item: any) => {
+                                    // OrderItem structure: product_name, variant_sku, unit_price, quantity
+                                    // Note: Backend doesn't include product details in OrderItem
                                     return {
-                                        title: product.name || 'Product',
-                                        price: item.price,
-                                        image: product.featured_image || product.image || '',
+                                        title: item.product_name || 'Product',
+                                        price: item.unit_price,
+                                        image: item.image || '', // May not be available from backend
                                         quantity: item.quantity
                                     };
                                 })
@@ -236,24 +237,42 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
             resolvedPrice = parseInt(product.price.replace(/[^0-9]/g, ''), 10) || 0;
         }
 
-        const productWithPrice = { ...product, price: resolvedPrice };
+        const productWithPrice = {
+            ...product,
+            price: resolvedPrice,
+            image: product.image || product.featured_image || '' // Ensure image is set
+        };
         logger.info('Action: Add to Cart', { productId: product.id, name: product.name, price: resolvedPrice });
 
         if (user?.backendToken) {
             try {
-                await api.post(API_ENDPOINTS.CART.ADD_ITEM, {
+                const res = await api.post(API_ENDPOINTS.CART.ADD_ITEM, {
                     product_id: product.id,
                     quantity: 1,
                     size: (product as any).selectedSize || 'M',
                     variant_id: (product as any).variant_id
                 });
-                // Optimistic update
+
+                // Get the real cartItemId from backend response
+                const newCartItemId = res.data?.item?.id;
+
+                // Optimistic update correction
                 const updatedCart = [...cart];
-                const existingItem = updatedCart.find(item => item.id === product.id);
-                if (existingItem) {
-                    existingItem.quantity = (existingItem.quantity || 0) + 1;
+                const existingItemIndex = updatedCart.findIndex(item => item.id === product.id);
+
+                if (existingItemIndex > -1) {
+                    updatedCart[existingItemIndex].quantity = (updatedCart[existingItemIndex].quantity || 0) + 1;
+                    // If it was missing cartItemId (rare race case), add it
+                    if (!updatedCart[existingItemIndex].cartItemId && newCartItemId) {
+                        updatedCart[existingItemIndex].cartItemId = newCartItemId;
+                    }
                 } else {
-                    updatedCart.push({ ...productWithPrice, quantity: 1, selectedSize: (product as any).selectedSize || 'M' } as CartItem);
+                    updatedCart.push({
+                        ...productWithPrice,
+                        quantity: 1,
+                        selectedSize: (product as any).selectedSize || 'M',
+                        cartItemId: newCartItemId // Store the backend ID
+                    } as CartItem);
                 }
                 setCart(updatedCart);
 
@@ -302,9 +321,9 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         setCart(updatedCart);
 
         // Sync with backend if authenticated
-        if (user?.backendToken) {
+        if (user?.backendToken && item.cartItemId) {
             try {
-                await api.put(API_ENDPOINTS.CART.UPDATE_ITEM(String(item.id)), {
+                await api.put(API_ENDPOINTS.CART.UPDATE_ITEM(item.cartItemId), {
                     quantity: newQuantity,
                     size: item.selectedSize || 'M'
                 });
@@ -321,9 +340,9 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         const itemToRemove = cart[index];
         if (itemToRemove) {
             logger.info('Action: Remove from Cart', { productId: itemToRemove.id, name: itemToRemove.name });
-            if (user?.backendToken) {
+            if (user?.backendToken && itemToRemove.cartItemId) {
                 try {
-                    await api.delete(API_ENDPOINTS.CART.REMOVE_ITEM(String(itemToRemove.id)));
+                    await api.delete(API_ENDPOINTS.CART.REMOVE_ITEM(itemToRemove.cartItemId));
                 } catch (error) {
                     logger.error("Remove from cart error", { error, productId: itemToRemove.id });
                 }

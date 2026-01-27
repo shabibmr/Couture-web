@@ -59,8 +59,9 @@ export default function OrderList() {
 
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
-            order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.customer.toLowerCase().includes(searchTerm.toLowerCase());
+            order.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (order.order_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (order.customer_id || '').toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
 
@@ -127,11 +128,11 @@ export default function OrderList() {
                             <tbody className="divide-y divide-stone-100">
                                 {filteredOrders.map(order => (
                                     <tr key={order.id} className="group hover:bg-stone-50/50 transition-colors">
-                                        <td className="p-4 font-mono text-sm font-medium text-midnight">{order.id}</td>
-                                        <td className="p-4 text-stone-600">{order.customer}</td>
-                                        <td className="p-4 text-stone-500 text-sm">{order.date}</td>
-                                        <td className="p-4 text-stone-500 text-sm">{order.items} items</td>
-                                        <td className="p-4 font-serif text-midnight">{formatCurrency(order.total)}</td>
+                                        <td className="p-4 font-mono text-sm font-medium text-midnight">{order.order_number || `#${order.id}`}</td>
+                                        <td className="p-4 text-stone-600">{order.customer_id ? order.customer_id.substring(0, 8) + '...' : 'N/A'}</td>
+                                        <td className="p-4 text-stone-500 text-sm">{new Date(order.order_date).toLocaleDateString()}</td>
+                                        <td className="p-4 text-stone-500 text-sm">{order.items?.length || 0} items</td>
+                                        <td className="p-4 font-serif text-midnight">{formatCurrency(order.total_amount)}</td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(order.status)} uppercase tracking-wide`}>
                                                 {order.status}

@@ -11,12 +11,25 @@ import { createNotification } from '../notification/services/notification.servic
 let razorpayInstance;
 
 const initRazorpay = async () => {
-    // Ideally fetch from DB or environment, here using env for simplicity
-    if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    // Determine which credentials to use based on RAZORPAY_MODE
+    const mode = process.env.RAZORPAY_MODE || 'test'; // Default to test mode for safety
+
+    const keyId = mode === 'live'
+        ? process.env.RAZORPAY_LIVE_KEY_ID
+        : process.env.RAZORPAY_TEST_KEY_ID;
+
+    const keySecret = mode === 'live'
+        ? process.env.RAZORPAY_LIVE_KEY_SECRET
+        : process.env.RAZORPAY_TEST_KEY_SECRET;
+
+    if (keyId && keySecret) {
         razorpayInstance = new Razorpay({
-            key_id: process.env.RAZORPAY_KEY_ID,
-            key_secret: process.env.RAZORPAY_KEY_SECRET,
+            key_id: keyId,
+            key_secret: keySecret,
         });
+        console.log(`[Razorpay] Initialized in ${mode.toUpperCase()} mode`);
+    } else {
+        console.error(`[Razorpay] Missing credentials for ${mode.toUpperCase()} mode`);
     }
 }
 
@@ -100,11 +113,17 @@ export const createRazorpayOrder = async (req, res) => {
             payment_date: new Date()
         });
 
+        const mode = process.env.RAZORPAY_MODE || 'test';
+        const keyId = mode === 'live'
+            ? process.env.RAZORPAY_LIVE_KEY_ID
+            : process.env.RAZORPAY_TEST_KEY_ID;
+
         res.json({
             id: razorpayOrder.id,
             currency: razorpayOrder.currency,
             amount: razorpayOrder.amount,
-            key_id: process.env.RAZORPAY_KEY_ID
+            key_id: keyId,
+            mode: mode // Add mode to response
         });
 
     } catch (error) {
@@ -118,8 +137,13 @@ export const verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
+        const mode = process.env.RAZORPAY_MODE || 'test';
+        const keySecret = mode === 'live'
+            ? process.env.RAZORPAY_LIVE_KEY_SECRET
+            : process.env.RAZORPAY_TEST_KEY_SECRET;
+
         const generated_signature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .createHmac('sha256', keySecret)
             .update(razorpay_order_id + '|' + razorpay_payment_id)
             .digest('hex');
 
@@ -178,7 +202,10 @@ export const verifyPayment = async (req, res) => {
 
 export const handleWebhook = async (req, res) => {
     try {
-        const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+        const mode = process.env.RAZORPAY_MODE || 'test';
+        const secret = mode === 'live'
+            ? process.env.RAZORPAY_LIVE_WEBHOOK_SECRET
+            : process.env.RAZORPAY_TEST_WEBHOOK_SECRET;
 
         // Verify signature
         const shasum = crypto.createHmac('sha256', secret);

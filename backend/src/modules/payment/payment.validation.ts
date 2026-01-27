@@ -5,11 +5,10 @@ import Joi from 'joi';
  */
 
 export const createRazorpayOrderSchema = Joi.object({
-    order_id: Joi.number().integer().positive().required()
+    order_id: Joi.string().uuid().required()
         .messages({
-            'number.base': 'Order ID must be a number',
-            'number.integer': 'Order ID must be an integer',
-            'number.positive': 'Order ID must be positive',
+            'string.base': 'Order ID must be a string',
+            'string.uuid': 'Order ID must be a valid UUID',
             'any.required': 'Order ID is required'
         })
 });

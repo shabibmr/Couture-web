@@ -55,7 +55,7 @@ api.interceptors.response.use(
             url: response.config.url || 'unknown',
             status: response.status,
             duration,
-            responseData: response.data,
+            // responseData: response.data, // Commented out to reduce log noise
         });
 
         return response;
