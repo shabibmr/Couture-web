@@ -64,8 +64,12 @@ const SearchResultsPage: React.FC = () => {
             setError(null);
             try {
                 const response = await api.get(API_ENDPOINTS.PRODUCTS.SEARCH, { params: { q: query } });
-                setProducts(response.data);
-                setFilteredProducts(response.data);
+                const normalizedData = response.data.map((p: any) => ({
+                    ...p,
+                    image: p.image || p.featured_image || ''
+                }));
+                setProducts(normalizedData);
+                setFilteredProducts(normalizedData);
 
                 // Extract unique categories from results
                 const uniqueCategories = [...new Set(response.data.map((p: any) => p.category).filter(Boolean))];
@@ -359,7 +363,7 @@ const SearchResultsPage: React.FC = () => {
 
                             // Map backend fields
                             const displayTitle = (product as any).name || product.title;
-                            const displayImage = (product as any).featured_image || product.image;
+                            const displayImage = (product as any).image;
                             const displayPrice = (product as any).sale_price
                                 ? formatPrice((product as any).sale_price)
                                 : ((product as any).base_price ? formatPrice((product as any).base_price) : (typeof product.price === 'number' ? formatPrice(product.price) : product.price));

@@ -6,7 +6,12 @@ import ProductVariant from '../catalog/models/product_variant.model.js';
 import Product from '../catalog/models/product.model.js';
 import Inventory from '../inventory/models/inventory.model.js';
 import Size from '../catalog/models/size.model.js';
+import Setting from '../system/settings.model.js';
+import Customer from '../identity/models/customer.model.js';
+import PaymentTransaction from '../payment/models/payment_transaction.model.js';
+import PaymentGateway from '../payment/models/payment_gateway.model.js';
 import sequelize from '../../config/database.js';
+
 
 export const createOrder = async (req, res) => {
     console.log("[OrderController] createOrder started for customer:", req.user.id);
@@ -134,9 +139,26 @@ export const createOrder = async (req, res) => {
         }
 
         // 3. Calculate Totals
-        // Simple fixed taxes/shipping for now (or strictly match existing logic)
-        const shipping_amount = 50.00; // Fixed for now, could be dynamic
-        const tax_amount = subtotal * 0.18; // 18% GST default
+        // Fetch shipping settings from database
+        const settingsData = await Setting.findAll();
+        const settings = {};
+        settingsData.forEach(s => { settings[s.key] = s.value; });
+
+        const baseShippingFee = settings.shipping_fee !== undefined && settings.shipping_fee !== null
+            ? parseFloat(settings.shipping_fee)
+            : 0.00;
+        const freeShippingThreshold = settings.free_shipping_threshold !== undefined && settings.free_shipping_threshold !== null
+            ? parseFloat(settings.free_shipping_threshold)
+            : 0;
+
+        // Apply free shipping logic - free if subtotal exceeds threshold
+        const shipping_amount = (subtotal >= freeShippingThreshold && freeShippingThreshold > 0)
+            ? 0
+            : baseShippingFee;
+
+        console.log(`[OrderController] Shipping calculation - Subtotal: ${subtotal}, Base Fee: ${baseShippingFee}, Threshold: ${freeShippingThreshold}, Final Shipping: ${shipping_amount}`);
+
+        const tax_amount = 0; // Tax removed as per requirement
         let discount_amount = 0; // Handle coupon logic if needed (skipped for phase 1 direct port)
 
         // If frontend provided discount/coupon, we really should validate it. 
@@ -145,6 +167,7 @@ export const createOrder = async (req, res) => {
         // Let's stick to trusted backend calculation.
 
         const total_amount = subtotal + shipping_amount + tax_amount - discount_amount;
+
 
         // 4. Create Order
         const order = await Order.create({
@@ -158,8 +181,6 @@ export const createOrder = async (req, res) => {
             shipping_address: typeof shipping_address === 'string' ? shipping_address : JSON.stringify(shipping_address),
             billing_address: typeof billing_address === 'string' ? billing_address : JSON.stringify(billing_address),
             shipping_method_id,
-            payment_method: payment_method || 'razorpay',
-            currency_code: currency || 'INR',
             coupon_code: coupon_code || null,
             status: 'pending'
         }, { transaction: t });
@@ -223,8 +244,21 @@ export const getOrders = async (req, res) => {
             where,
             limit: parseInt(limit),
             offset: parseInt(offset),
-            order: [['created_at', 'DESC']],
-            include: [{ model: OrderItem, as: 'items' }],
+            order: [['order_date', 'DESC']],
+            include: [
+                { model: OrderItem, as: 'items' },
+                {
+                    model: Customer,
+                    attributes: ['id', 'first_name', 'last_name', 'email', 'phone']
+                },
+                {
+                    model: PaymentTransaction,
+                    include: [{
+                        model: PaymentGateway,
+                        attributes: ['name', 'code']
+                    }]
+                }
+            ],
             distinct: true
         });
 
@@ -247,7 +281,20 @@ export const getOrderById = async (req, res) => {
 
         const order = await Order.findOne({
             where: { id, customer_id },
-            include: [{ model: OrderItem, as: 'items' }]
+            include: [
+                { model: OrderItem, as: 'items' },
+                {
+                    model: Customer,
+                    attributes: ['id', 'first_name', 'last_name', 'email', 'phone']
+                },
+                {
+                    model: PaymentTransaction,
+                    include: [{
+                        model: PaymentGateway,
+                        attributes: ['name', 'code']
+                    }]
+                }
+            ]
         });
 
         if (!order) {

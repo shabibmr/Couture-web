@@ -9,7 +9,7 @@ export interface Product {
     sale_price?: number; // Backend uses sale_price
     description: string;
     image: string;
-    featured_image?: string; // Backend uses featured_image
+    featured_image?: string; // Backend uses featured_image - DEPRECATED: use image
     variants?: ProductVariant[]; // Include variants with inventory info
 }
 
@@ -31,6 +31,7 @@ export interface CartItem extends Product {
     quantity?: number;
     selectedSize?: string;
     variant_id?: string;
+    cartItemId?: string;
 }
 
 export interface OrderItem {

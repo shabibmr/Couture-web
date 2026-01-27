@@ -4,6 +4,8 @@ import { X, ShoppingBag } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuthGuard } from '../hooks/useAuthGuard';
+import api from '../services/api.service';
+import { API_ENDPOINTS } from '../config/api.config';
 
 const CartDrawer: React.FC = () => {
     const { cart, isCartOpen, setIsCartOpen, removeFromCart, formatPrice } = useShop();
@@ -107,21 +109,42 @@ const CartDrawer: React.FC = () => {
                                 </span>
                             </div>
                             <button
-                                onClick={() => {
+                                onClick={async () => {
+                                    setIsCartOpen(false);
                                     if (!requireAuth({ returnTo: '/checkout' })) return;
 
-                                    // Calculate order totals to pass to checkout
-                                    const subtotal = cart.reduce((acc, item) => {
-                                        const itemPrice = parsePrice(item.price);
-                                        const itemQuantity = item.quantity || 1;
-                                        return acc + (itemPrice * itemQuantity);
-                                    }, 0);
-                                    const tax = subtotal * 0.18;
-                                    const discount = 0; // No discount from drawer
-                                    const total = subtotal + tax - discount;
+                                    try {
+                                        // Calculate order totals to pass to checkout
+                                        const subtotal = cart.reduce((acc, item) => {
+                                            const itemPrice = parsePrice(item.price);
+                                            const itemQuantity = item.quantity || 1;
+                                            return acc + (itemPrice * itemQuantity);
+                                        }, 0);
+                                        const tax = 0; // 0% tax - will be replaced with backend calculation
+                                        const discount = 0; // No discount from drawer
 
-                                    setIsCartOpen(false);
-                                    navigate('/checkout', { state: { subtotal, tax, discount, total } });
+                                        // Fetch shipping fee from backend
+                                        const shippingResponse = await api.get(API_ENDPOINTS.ORDERS.CALCULATE_SHIPPING(subtotal));
+                                        const shippingFee = shippingResponse.data.shipping_amount || 0;
+
+                                        const total = subtotal + tax + shippingFee - discount;
+
+                                        setIsCartOpen(false);
+                                        navigate('/checkout', { state: { subtotal, tax, discount, shippingFee, total } });
+                                    } catch (error) {
+                                        console.error('Error calculating shipping:', error);
+                                        // Fallback to 0 shipping if API fails
+                                        const subtotal = cart.reduce((acc, item) => {
+                                            const itemPrice = parsePrice(item.price);
+                                            const itemQuantity = item.quantity || 1;
+                                            return acc + (itemPrice * itemQuantity);
+                                        }, 0);
+                                        const tax = 0;
+                                        const discount = 0;
+                                        const shippingFee = 0;
+                                        const total = subtotal + tax + shippingFee - discount;
+                                        navigate('/checkout', { state: { subtotal, tax, discount, shippingFee, total } });
+                                    }
                                 }}
                                 className="block w-full text-center bg-stone-900 text-[#FDFBF7] py-4 text-sm font-medium tracking-[0.2em] uppercase hover:bg-ruvera-gold transition-colors duration-500"
                             >

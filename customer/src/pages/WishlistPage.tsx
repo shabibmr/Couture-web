@@ -50,7 +50,7 @@ const WishlistPage: React.FC = () => {
                                 >
                                     <div className="relative aspect-[3/4] mb-4 bg-stone-200 overflow-hidden">
                                         <img
-                                            src={product.featured_image || product.image}
+                                            src={product.image}
                                             alt={product.name || product.title}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />

@@ -25,6 +25,12 @@ const CartPage: React.FC = () => {
     const [couponLoading, setCouponLoading] = useState(false);
     const [couponError, setCouponError] = useState<string | null>(null);
 
+    // Shipping State
+    const [shippingFee, setShippingFee] = useState<number>(0);
+    const [shippingLoading, setShippingLoading] = useState(false);
+    const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(0);
+    const [amountToFreeShipping, setAmountToFreeShipping] = useState<number>(0);
+
     // Helper to parse price string or number to number for calculation
     const parsePrice = (price: any): number => {
         if (typeof price === 'number') return price;
@@ -57,8 +63,42 @@ const CartPage: React.FC = () => {
         const itemQuantity = item.quantity || 1;
         return acc + (itemPrice * itemQuantity);
     }, 0);
-    const tax = subtotal * 0.18; // Assuming 18% tax
-    const total = subtotal + tax - discount;
+    const tax = 0; // Tax removed
+    const total = subtotal + tax + shippingFee - discount;
+
+    // Fetch shipping fee when subtotal changes
+    React.useEffect(() => {
+        const fetchShipping = async () => {
+            if (subtotal <= 0) {
+                setShippingFee(0);
+                setFreeShippingThreshold(0);
+                setAmountToFreeShipping(0);
+                return;
+            }
+
+            setShippingLoading(true);
+            try {
+                const response = await api.get(API_ENDPOINTS.ORDERS.CALCULATE_SHIPPING(subtotal));
+                setShippingFee(response.data.shipping_amount);
+                setFreeShippingThreshold(response.data.free_shipping_threshold);
+                setAmountToFreeShipping(response.data.amount_to_free_shipping);
+                logger.info('Shipping calculated', {
+                    subtotal,
+                    shipping: response.data.shipping_amount,
+                    isFree: response.data.is_free
+                });
+            } catch (error) {
+                logger.error('Error fetching shipping', { error });
+                setShippingFee(0); // Fallback to default
+                setFreeShippingThreshold(0);
+                setAmountToFreeShipping(0);
+            } finally {
+                setShippingLoading(false);
+            }
+        };
+
+        fetchShipping();
+    }, [subtotal]);
 
 
 
@@ -95,7 +135,7 @@ const CartPage: React.FC = () => {
         // Check authentication before proceeding to checkout
         if (!requireAuth({ returnTo: '/checkout' })) return;
 
-        navigate('/checkout', { state: { subtotal, tax, discount, total } });
+        navigate('/checkout', { state: { subtotal, tax, discount, shippingFee, total } });
     };
 
     return (
@@ -130,9 +170,9 @@ const CartPage: React.FC = () => {
                                 className="flex gap-6 md:gap-10 border-b border-stone-100 pb-8"
                             >
                                 <div className="w-24 md:w-32 aspect-[3/4] bg-stone-200 flex-shrink-0 relative overflow-hidden">
-                                    {item.featured_image || item.image ? (
+                                    {item.image ? (
                                         <img
-                                            src={item.featured_image || item.image}
+                                            src={item.image}
                                             alt={item.name || item.title}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
@@ -206,12 +246,22 @@ const CartPage: React.FC = () => {
                                 </div>
                                 <div className="flex justify-between text-stone-600">
                                     <span>Shipping</span>
-                                    <span className="text-xs uppercase tracking-widest text-stone-400">Calculated at Checkout</span>
+                                    <span>
+                                        {shippingLoading ? (
+                                            <span className="text-xs">...</span>
+                                        ) : shippingFee === 0 ? (
+                                            <span className="text-ruvera-gold font-medium">FREE</span>
+                                        ) : (
+                                            formatPrice(shippingFee)
+                                        )}
+                                    </span>
                                 </div>
-                                <div className="flex justify-between text-stone-600">
-                                    <span>Estimated Tax</span>
-                                    <span>{formatPrice(tax)}</span>
-                                </div>
+                                {amountToFreeShipping > 0 && (
+                                    <div className="text-xs text-stone-500 italic -mt-2">
+                                        Add {formatPrice(amountToFreeShipping)} more for free shipping
+                                    </div>
+                                )}
+
 
                                 {discount > 0 && (
                                     <div className="flex justify-between text-ruvera-gold font-medium">

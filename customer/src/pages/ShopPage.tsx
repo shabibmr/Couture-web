@@ -45,7 +45,11 @@ const ShopPage: React.FC = () => {
             }
             // Handle paginated response: {total, pages, currentPage, data: [...]}
             const productsData = response.data.data || response.data;
-            setProducts(Array.isArray(productsData) ? productsData : []);
+            const normalizedProducts = (Array.isArray(productsData) ? productsData : []).map((p: any) => ({
+                ...p,
+                image: p.image || p.featured_image || ''
+            }));
+            setProducts(normalizedProducts);
         } catch (err: any) {
             logger.error("Fetch products error", { error: err });
             setError(err.response?.data?.message || 'Failed to connect to the server');
@@ -172,7 +176,7 @@ const ShopPage: React.FC = () => {
 
                                     // Map backend fields to UI expectations
                                     const displayTitle = product.name || product.title;
-                                    const displayImage = product.featured_image || product.image;
+                                    const displayImage = product.image;
                                     const displayPrice = product.sale_price ? formatPrice(product.sale_price) : (product.base_price ? formatPrice(product.base_price) : (typeof product.price === 'number' ? formatPrice(product.price) : product.price));
                                     const displayId = product.slug || product.id;
 

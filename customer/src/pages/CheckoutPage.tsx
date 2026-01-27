@@ -19,6 +19,7 @@ interface CheckoutState {
     subtotal: number;
     tax: number;
     discount: number;
+    shippingFee: number;
     total: number;
 }
 
@@ -27,6 +28,10 @@ const CheckoutPage: React.FC = () => {
     const location = useLocation();
     const { cart, addOrder, clearCart, formatPrice, currency: shopCurrency } = useShop();
     const { user, loading: authLoading } = useAuth();
+
+    // Define orderData BEFORE useEffect to prevent reference error
+    const orderData = (location.state as CheckoutState) || { subtotal: 0, tax: 0, discount: 0, shippingFee: 0, total: 0 };
+    const { total } = orderData;
 
     // Protect Route - use user state instead of localStorage
     React.useEffect(() => {
@@ -41,10 +46,9 @@ const CheckoutPage: React.FC = () => {
         }
     }, [authLoading, user, navigate]);
 
-    const orderData = (location.state as CheckoutState) || { subtotal: 0, tax: 0, discount: 0, total: 0 };
-    const { total } = orderData;
 
     const [loading, setLoading] = useState<boolean>(false);
+    const [paymentMode, setPaymentMode] = useState<string>(''); // 'test' or 'live'
     const [formData, setFormData] = useState({
         name: '',
         address: '',
@@ -93,7 +97,8 @@ const CheckoutPage: React.FC = () => {
                 order_id: backendOrderId
             });
 
-            const { id: rzpOrderId, amount, currency: rzpCurrency, key_id } = razorpayOrderResponse.data;
+            const { id: rzpOrderId, amount, currency: rzpCurrency, key_id, mode } = razorpayOrderResponse.data;
+            setPaymentMode(mode || 'test'); // Set payment mode from backend response
 
             // 3. Open Razorpay Checkout
             const options = {
@@ -219,6 +224,11 @@ const CheckoutPage: React.FC = () => {
                             </div>
 
                             <div className="pt-6">
+                                {paymentMode === 'test' && (
+                                    <div className="mb-4 bg-orange-50 border border-orange-200 rounded px-4 py-2 flex items-center justify-center gap-2">
+                                        <span className="text-orange-600 text-xs font-medium uppercase tracking-wider">⚠️ Test Mode</span>
+                                    </div>
+                                )}
                                 <button
                                     type="submit"
                                     disabled={loading}
@@ -245,7 +255,7 @@ const CheckoutPage: React.FC = () => {
                         <div className="space-y-4 max-h-[300px] overflow-y-auto mb-6 pr-2 custom-scrollbar">
                             {cart.map((item, idx) => (
                                 <div key={`${item.code}-${idx}`} className="flex gap-4">
-                                    {(item.featured_image || item.image) && <img src={item.featured_image || item.image} alt="product" className="w-16 h-20 object-cover bg-stone-200 rounded" />}
+                                    {item.image && <img src={item.image} alt="product" className="w-16 h-20 object-cover bg-stone-200 rounded" />}
                                     <div>
                                         <h4 className="font-serif text-sm text-midnight">{item.name || item.title}</h4>
                                         <p className="text-xs text-stone-500">Size: {item.selectedSize || 'M'}</p>
@@ -263,11 +273,20 @@ const CheckoutPage: React.FC = () => {
                                 <span>Subtotal</span>
                                 <span>{formatPrice(orderData.subtotal)}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span>Tax</span>
-                                <span>{formatPrice(orderData.tax)}</span>
+
+                            <div className="flex justify-between text-stone-600">
+                                <span>Shipping</span>
+                                <span>
+                                    {orderData.shippingFee === 0 ? (
+                                        <span className="text-ruvera-gold font-medium">Free Shipping</span>
+                                    ) : (
+                                        formatPrice(orderData.shippingFee)
+                                    )}
+                                </span>
                             </div>
+
                             {orderData.discount > 0 && (
+
                                 <div className="flex justify-between text-ruvera-gold">
                                     <span>Discount</span>
                                     <span>-{formatPrice(orderData.discount)}</span>

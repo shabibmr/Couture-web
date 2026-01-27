@@ -73,7 +73,11 @@ const ProductDetail: React.FC = () => {
                     : API_ENDPOINTS.PRODUCTS.BY_SLUG(productSlug || '');
 
                 const response = await api.get(endpoint);
-                setProduct(response.data);
+                const normalizedProduct = {
+                    ...response.data,
+                    image: response.data.image || response.data.featured_image || ''
+                };
+                setProduct(normalizedProduct);
 
                 // Fetch related products (same category)
                 if (response.data.category) {
@@ -83,7 +87,11 @@ const ProductDetail: React.FC = () => {
                     // Filter out current product and limit to 4
                     const filtered = relatedResponse.data
                         .filter((p: Product) => p.id !== response.data.id)
-                        .slice(0, 4);
+                        .slice(0, 4)
+                        .map((p: any) => ({
+                            ...p,
+                            image: p.image || p.featured_image || ''
+                        }));
                     setRelatedProducts(filtered);
                 }
             } catch (err: any) {
@@ -119,7 +127,7 @@ const ProductDetail: React.FC = () => {
 
     // Map backend fields
     const displayTitle = product.name || product.title;
-    const displayImage = product.featured_image || product.image;
+    const displayImage = product.image;
     const displayPrice = product.sale_price ? formatPrice(product.sale_price) : (product.base_price ? formatPrice(product.base_price) : (typeof product.price === 'number' ? formatPrice(product.price) : product.price));
     const displayCode = product.code || product.slug || 'N/A';
     const displayDescription = product.description || 'No description available.';
@@ -380,7 +388,7 @@ const ProductDetail: React.FC = () => {
                                 const shape = organicShapes[index % organicShapes.length];
                                 const isRelatedWishlisted = isInWishlist(relatedProduct.id);
                                 const relatedTitle = (relatedProduct as any).name || relatedProduct.title;
-                                const relatedImage = (relatedProduct as any).featured_image || relatedProduct.image;
+                                const relatedImage = (relatedProduct as any).image;
                                 const relatedPrice = (relatedProduct as any).sale_price
                                     ? formatPrice((relatedProduct as any).sale_price)
                                     : ((relatedProduct as any).base_price ? formatPrice((relatedProduct as any).base_price) : (typeof relatedProduct.price === 'number' ? formatPrice(relatedProduct.price) : relatedProduct.price));

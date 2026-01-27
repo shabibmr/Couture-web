@@ -49,13 +49,13 @@ export default function OrderDetail() {
                     </Link>
                     <div>
                         <div className="flex items-center gap-3">
-                            <h2 className="text-2xl font-serif text-midnight">Order #{order.id}</h2>
+                            <h2 className="text-2xl font-serif text-midnight">Order {order.order_number || `#${order.id}`}</h2>
                             <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wide">
                                 {order.status}
                             </span>
                         </div>
                         <p className="text-stone-500 text-sm mt-1">
-                            Placed on {new Date(order.date).toLocaleDateString()} at {new Date(order.date).toLocaleTimeString()}
+                            Placed on {new Date(order.order_date).toLocaleDateString()} at {new Date(order.order_date).toLocaleTimeString()}
                         </p>
                     </div>
                 </div>
@@ -99,18 +99,22 @@ export default function OrderDetail() {
                             {order.items.map(item => (
                                 <div key={item.id} className="p-4 flex gap-4">
                                     <div className="w-20 h-24 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0">
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                        {item.image ? (
+                                            <img src={item.image} alt={item.product_name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs">No Image</div>
+                                        )}
                                     </div>
                                     <div className="flex-1 flex justify-between">
                                         <div>
-                                            <h4 className="font-serif text-midnight font-medium">{item.name}</h4>
-                                            <p className="text-sm text-stone-500 mt-1">{item.variant}</p>
-                                            <p className="text-xs font-mono text-stone-400 mt-1">SKU: {item.sku}</p>
+                                            <h4 className="font-serif text-midnight font-medium">{item.product_name}</h4>
+                                            <p className="text-sm text-stone-500 mt-1">{item.variant || 'Standard'}</p>
+                                            <p className="text-xs font-mono text-stone-400 mt-1">SKU: {item.variant_sku}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-medium text-midnight">{settings.currency_symbol}{item.price.toFixed(2)}</p>
+                                            <p className="font-medium text-midnight">{settings.currency_symbol}{parseFloat(item.unit_price).toFixed(2)}</p>
                                             <p className="text-sm text-stone-500">Qty: {item.quantity}</p>
-                                            <p className="font-medium text-ruvera-gold mt-1">{settings.currency_symbol}{(item.price * item.quantity).toFixed(2)}</p>
+                                            <p className="font-medium text-ruvera-gold mt-1">{settings.currency_symbol}{parseFloat(item.total_price).toFixed(2)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -119,19 +123,19 @@ export default function OrderDetail() {
                         <div className="p-6 bg-stone-50/50 space-y-2">
                             <div className="flex justify-between text-sm text-stone-600">
                                 <span>Subtotal</span>
-                                <span>{settings.currency_symbol}{order.subtotal.toFixed(2)}</span>
+                                <span>{settings.currency_symbol}{parseFloat(order.subtotal).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm text-stone-600">
                                 <span>Shipping</span>
-                                <span>{settings.currency_symbol}{order.shipping.toFixed(2)}</span>
+                                <span>{settings.currency_symbol}{parseFloat(order.shipping_amount).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm text-stone-600">
                                 <span>Tax</span>
-                                <span>{settings.currency_symbol}{order.tax.toFixed(2)}</span>
+                                <span>{settings.currency_symbol}{parseFloat(order.tax_amount).toFixed(2)}</span>
                             </div>
                             <div className="pt-4 border-t border-stone-200 flex justify-between items-center">
                                 <span className="font-serif font-medium text-lg text-midnight">Total</span>
-                                <span className="font-serif font-medium text-lg text-midnight">{settings.currency_symbol}{order.total.toFixed(2)}</span>
+                                <span className="font-serif font-medium text-lg text-midnight">{settings.currency_symbol}{parseFloat(order.total_amount).toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
@@ -157,12 +161,30 @@ export default function OrderDetail() {
                         </h3>
                         <div className="space-y-3">
                             <div>
-                                <p className="font-medium text-midnight">{order.customer.name}</p>
-                                <p className="text-sm text-stone-500">{order.customer.email}</p>
-                                <p className="text-sm text-stone-500">{order.customer.phone}</p>
+                                {order.Customer ? (
+                                    <>
+                                        <p className="font-medium text-midnight">
+                                            {order.Customer.first_name} {order.Customer.last_name}
+                                        </p>
+                                        <p className="text-sm text-stone-500">{order.Customer.email}</p>
+                                        {order.Customer.phone && (
+                                            <p className="text-sm text-stone-500">{order.Customer.phone}</p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="font-medium text-midnight">Customer ID</p>
+                                        <p className="text-sm text-stone-500 font-mono">{order.customer_id}</p>
+                                    </>
+                                )}
                             </div>
                             <div className="pt-3 border-t border-stone-100">
-                                <Link to={`/customers/1`} className="text-sm text-ruvera-gold hover:underline">View Profile</Link>
+                                <Link
+                                    to={order.Customer ? `/customers/${order.customer_id}` : '/customers'}
+                                    className="text-sm text-ruvera-gold hover:underline"
+                                >
+                                    {order.Customer ? 'View Profile' : 'View Customers'}
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -173,9 +195,22 @@ export default function OrderDetail() {
                             Delivery Address
                         </h3>
                         <address className="not-italic text-sm text-stone-600 space-y-1">
-                            <p>{order.shipping_address.line1}</p>
-                            <p>{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</p>
-                            <p>{order.shipping_address.country}</p>
+                            {(() => {
+                                try {
+                                    const addr = typeof order.shipping_address === 'string'
+                                        ? JSON.parse(order.shipping_address)
+                                        : order.shipping_address;
+                                    return (
+                                        <>
+                                            <p>{addr.line1 || addr.address || 'N/A'}</p>
+                                            <p>{addr.city || ''}{addr.city && addr.state ? ', ' : ''}{addr.state || ''} {addr.zip || addr.postal_code || ''}</p>
+                                            <p>{addr.country || ''}</p>
+                                        </>
+                                    );
+                                } catch (e) {
+                                    return <p className="text-stone-400">Address information unavailable</p>;
+                                }
+                            })()}
                         </address>
                     </div>
 
@@ -184,19 +219,48 @@ export default function OrderDetail() {
                             <CreditCard size={20} className="text-ruvera-gold" />
                             Payment Info
                         </h3>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-stone-500">Method</span>
-                                <span className="font-medium text-midnight">{order.payment.method}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-stone-500">Status</span>
-                                <span className="font-medium text-emerald-600 capitalize">{order.payment.status}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-stone-500">Transaction ID</span>
-                                <span className="font-mono text-xs text-stone-400">{order.payment.transaction_id}</span>
-                            </div>
+                        <div className="space-y-2">
+                            {order.PaymentTransactions && order.PaymentTransactions.length > 0 ? (
+                                <>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-stone-500">Payment Method</span>
+                                        <span className="font-medium text-midnight capitalize">
+                                            {order.PaymentTransactions[0].PaymentGateway?.name || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-stone-500">Payment Status</span>
+                                        <span className={`font-medium ${order.PaymentTransactions[0].status === 'completed'
+                                                ? 'text-green-600'
+                                                : order.PaymentTransactions[0].status === 'failed'
+                                                    ? 'text-red-600'
+                                                    : 'text-amber-600'
+                                            }`}>
+                                            {order.PaymentTransactions[0].status}
+                                        </span>
+                                    </div>
+                                    {order.PaymentTransactions[0].transaction_id && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-stone-500">Razorpay Order ID</span>
+                                            <span className="font-mono text-xs text-stone-600">
+                                                {order.PaymentTransactions[0].transaction_id}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {order.PaymentTransactions[0].gateway_response?.payment_id && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-stone-500">Razorpay Payment ID</span>
+                                            <span className="font-mono text-xs text-stone-600">
+                                                {order.PaymentTransactions[0].gateway_response.payment_id}
+                                            </span>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-sm text-stone-400">
+                                    No payment information available
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

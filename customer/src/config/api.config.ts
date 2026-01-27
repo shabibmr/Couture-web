@@ -45,11 +45,14 @@ export const API_ENDPOINTS = {
 
     // 5. ORDERS
     ORDERS: {
+        BASE: '/orders',
         LIST: '/orders',
         CREATE: '/orders',
         BY_ID: (orderId: string) => `/orders/${orderId}`,
         UPDATE_STATUS: (orderId: string) => `/orders/${orderId}/status`,
+        CALCULATE_SHIPPING: (subtotal: number) => `/orders/shipping/calculate?subtotal=${subtotal}`,
     },
+
 
     // 6. PAYMENT
     PAYMENT: {
