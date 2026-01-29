@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import CartDrawer from './CartDrawer';
 import SearchOverlay from './SearchOverlay';
 import BreezeLeaf from './BreezeLeaf';
-import logo from '../assets/ruvera_logo.png';
+import logo from '../assets/ruvera_logo.svg';
 
 const Layout: React.FC = () => {
     const { setIsCartOpen, setIsSearchOpen, cart, wishlist } = useShop();
@@ -22,7 +22,7 @@ const Layout: React.FC = () => {
                 {/* Left: Logo */}
                 <div className="pointer-events-auto">
                     <Link to="/">
-                        <img src={logo} alt="Ruvéra Couture" className="w-28 md:w-40 h-auto mix-blend-multiply" />
+                        <img src={logo} alt="Ruvéra Couture" className="w-28 md:w-40 h-auto mix-blend-multiply border border-blue-500" />
                     </Link>
                 </div>
 

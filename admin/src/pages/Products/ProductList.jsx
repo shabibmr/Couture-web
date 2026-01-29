@@ -17,14 +17,27 @@ export default function ProductList() {
     const { settings } = useSettings();
 
     useEffect(() => {
-        loadProducts(currentPage);
+        loadProducts(currentPage, searchTerm);
     }, [currentPage]);
 
-    const loadProducts = async (page) => {
+    // Debounced search re-fetch
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (currentPage === 1) {
+                loadProducts(1, searchTerm);
+            } else {
+                setCurrentPage(1); // This will trigger the currentPage effect above
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    const loadProducts = async (page, search = '') => {
         try {
             setLoading(true);
             // Request all products (both active and inactive) for admin view
-            const response = await api.get(`/products?page=${page}&limit=${itemsPerPage}&status=all`);
+            const response = await api.get(`/products?page=${page}&limit=${itemsPerPage}&status=all&search=${search}`);
             if (response.data.data) {
                 const mappedProducts = response.data.data.map(product => ({
                     ...product,
@@ -61,10 +74,6 @@ export default function ProductList() {
         }
     };
 
-    const filteredProducts = products.filter(product =>
-        (product.title && product.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (product.code && product.code.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
 
     return (
         <div className="space-y-6">
@@ -103,22 +112,49 @@ export default function ProductList() {
 
             {/* Table */}
             <div className="bg-white rounded-xl shadow-sm border border-stone-100 overflow-hidden">
-                {loading ? (
-                    <div className="p-12 text-center text-stone-400">Loading catalogue...</div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-stone-50 border-b border-stone-100">
-                                    <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Product</th>
-                                    <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Code</th>
-                                    <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Price</th>
-                                    <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Status</th>
-                                    <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-stone-100">
-                                {filteredProducts.map(product => (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-stone-50 border-b border-stone-100">
+                                <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Product</th>
+                                <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Code</th>
+                                <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Price</th>
+                                <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Status</th>
+                                <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-100">
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={`skeleton-${i}`}>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-lg animate-shimmer" />
+                                                <div className="space-y-2">
+                                                    <div className="h-4 w-32 rounded animate-shimmer" />
+                                                    <div className="h-3 w-16 rounded animate-shimmer" />
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="h-4 w-20 rounded animate-shimmer" />
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="h-4 w-16 rounded animate-shimmer" />
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="h-6 w-16 rounded-full animate-shimmer" />
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <div className="w-8 h-8 rounded-full animate-shimmer" />
+                                                <div className="w-8 h-8 rounded-full animate-shimmer" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                products.map(product => (
                                     <tr key={product.id || product.slug} className="group hover:bg-stone-50/50 transition-colors">
                                         <td className="p-4">
                                             <div className="flex items-center gap-4">
@@ -158,11 +194,11 @@ export default function ProductList() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <Pagination

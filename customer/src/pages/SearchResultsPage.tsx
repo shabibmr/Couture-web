@@ -63,16 +63,19 @@ const SearchResultsPage: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const response = await api.get(API_ENDPOINTS.PRODUCTS.SEARCH, { params: { q: query } });
-                const normalizedData = response.data.map((p: any) => ({
+                const response = await api.get(API_ENDPOINTS.PRODUCTS.SEARCH, { params: { q: query, limit: 100 } });
+                const rawData = response.data.data || response.data || [];
+                const normalizedData = rawData.map((p: any) => ({
                     ...p,
-                    image: p.image || p.featured_image || ''
+                    title: p.name || p.title || '',
+                    category: p.Category?.name || p.category || '',
+                    image: p.featured_image || p.image || (p.images && p.images[0]?.image_url) || ''
                 }));
                 setProducts(normalizedData);
                 setFilteredProducts(normalizedData);
 
                 // Extract unique categories from results
-                const uniqueCategories = [...new Set(response.data.map((p: any) => p.category).filter(Boolean))];
+                const uniqueCategories = [...new Set(normalizedData.map((p: any) => p.category).filter(Boolean))];
                 setCategories(uniqueCategories as string[]);
             } catch (err: any) {
                 logger.error("Search error", { error: err, query });

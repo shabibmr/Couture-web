@@ -31,12 +31,23 @@ export const getAllProducts = async (req, res) => {
         if (searchQuery) {
             where[Op.or] = [
                 { name: { [Op.like]: `%${searchQuery}%` } },
-                { description: { [Op.like]: `%${searchQuery}%` } }
+                { description: { [Op.like]: `%${searchQuery}%` } },
+                { slug: { [Op.like]: `%${searchQuery}%` } }
             ];
         }
 
         const include = [
             { model: ProductImage, as: 'images', attributes: ['image_url', 'sort_order'] },
+            { model: Category, as: 'Category', attributes: ['name', 'slug'] },
+            {
+                model: ProductVariant,
+                as: 'variants',
+                include: [
+                    { model: Size, attributes: ['name', 'code'] },
+                    { model: Color, attributes: ['name', 'hex_code'] },
+                    { model: Inventory, attributes: ['quantity', 'reserved_quantity'] },
+                ]
+            }
         ];
 
         if (category_slug) {

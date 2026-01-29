@@ -49,7 +49,7 @@ const HomePage: React.FC = () => {
             <section ref={heroRef} className="relative min-h-screen grid grid-cols-1 md:grid-cols-2 pt-20 md:pt-0">
 
                 {/* Left Column: Text */}
-                <div className="relative z-20 flex flex-col justify-center px-6 md:px-20 py-20 bg-beige-bg order-2 md:order-1">
+                <div className="relative z-20 flex flex-col justify-center px-6 md:px-20 py-20 bg-beige-bg order-2 md:order-2">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -59,7 +59,7 @@ const HomePage: React.FC = () => {
                         <h2 className="text-stone-500 text-xs font-sans tracking-[0.3em] uppercase">
                             {subtitle}
                         </h2>
-                        <h1 className="text-6xl md:text-8xl font-serif text-midnight leading-[0.9]">
+                        <h1 className="text-6xl md:text-8xl font-serif text-ruvera-gold leading-[0.9]">
                             <span className="block">Your Everyday</span>
                             <span className="block pl-12 italic font-light">Elégance</span>
                         </h1>
@@ -76,7 +76,7 @@ const HomePage: React.FC = () => {
                 {/* Right Column: Image */}
                 <motion.div
                     style={{ opacity }}
-                    className="relative h-[60vh] md:h-screen w-full overflow-hidden order-1 md:order-2"
+                    className="relative h-[60vh] md:h-screen w-full overflow-hidden order-1 md:order-1"
                 >
                     <picture className="w-full h-full block">
                         {/* <source srcSet={bgImage?.replace(/\.(png|jpg|jpeg)$/i, '.webp')} type="image/webp" /> */}

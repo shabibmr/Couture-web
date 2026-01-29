@@ -25,7 +25,7 @@ export default function Login() {
         <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
             <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-stone-100">
                 <div className="text-center mb-8">
-                    <h1 className="font-serif text-3xl text-midnight">Couture Admin</h1>
+                    <h1 className="font-serif text-3xl text-midnight">Ruvera Couture Admin</h1>
                     <p className="text-stone-500 mt-2">Sign in to manage your store</p>
                 </div>
 
@@ -41,7 +41,7 @@ export default function Login() {
                         <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
                             <input
-                                type="text"
+                                type={import.meta.env.MODE === 'development' ? 'text' : 'email'}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-stone-200 rounded-lg focus:ring-1 focus:ring-ruvera-gold focus:border-ruvera-gold outline-none"
