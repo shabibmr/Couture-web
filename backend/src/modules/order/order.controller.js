@@ -308,6 +308,40 @@ export const getOrderById = async (req, res) => {
     }
 };
 
+// Admin-specific endpoint to get any order without customer filter
+export const getOrderByIdAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const order = await Order.findOne({
+            where: { id },
+            include: [
+                { model: OrderItem, as: 'items' },
+                {
+                    model: Customer,
+                    attributes: ['id', 'first_name', 'last_name', 'email', 'phone']
+                },
+                {
+                    model: PaymentTransaction,
+                    include: [{
+                        model: PaymentGateway,
+                        attributes: ['name', 'code']
+                    }]
+                }
+            ]
+        });
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        res.json(order);
+    } catch (error) {
+        console.error('Error fetching order:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 export const updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;

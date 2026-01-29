@@ -198,8 +198,8 @@ class LogRocketService {
             console[level](message, data);
         }
 
-        // 3. Send to log file via backend
-        this.sendToFile(level, message, data);
+        // 3. Send to log file via backend (disabled - endpoint not implemented)
+        // this.sendToFile(level, message, data);
     }
 
     /**

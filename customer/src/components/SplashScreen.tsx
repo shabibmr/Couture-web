@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import logo from '../assets/logo_ruvera11.png';
+import logo from '../assets/ruvera_logo.svg';
 
 interface SplashScreenProps {
     onComplete: () => void;
@@ -35,7 +35,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                    className="w-48 md:w-64 h-auto mix-blend-multiply"
+                    className="w-48 md:w-64 h-auto mix-blend-multiply border border-blue-500"
                 />
             </div>
         </motion.div>
