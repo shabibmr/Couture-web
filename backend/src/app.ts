@@ -23,8 +23,17 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import settingsRoutes from './modules/system/settings.routes.js';
 import notificationRoutes from './modules/notification/notification.routes.js';
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configuration
+app.use(cors({
+    origin: ['http://localhost:3014', 'http://localhost:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Handle preflight requests
+app.options('*', cors());
+
 app.use(express.json({
     limit: '50mb',
     verify: (_req: any, _res: any, buf: Buffer) => {

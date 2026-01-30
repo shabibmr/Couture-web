@@ -25,8 +25,19 @@ dist-ssr
 
 # Local process tracking
 .pids
+*.log
 
 # Product images
 prodimages/
+png_files
 
 db_bk.sql
+logo_assets/
+to_do/
+
+
+admin/.env_production
+customer/.env_production
+admin/.env.production
+customer/.env.production
+create_gold_icon.py

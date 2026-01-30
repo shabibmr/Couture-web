@@ -22,7 +22,7 @@ const Layout: React.FC = () => {
                 {/* Left: Logo */}
                 <div className="pointer-events-auto">
                     <Link to="/">
-                        <img src={logo} alt="Ruvéra Couture" className="w-28 md:w-40 h-auto mix-blend-multiply border border-blue-500" />
+                        <img src={logo} alt="Ruvéra Couture" className="w-28 md:w-40 h-auto mix-blend-multiply" />
                     </Link>
                 </div>
 

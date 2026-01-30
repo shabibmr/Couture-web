@@ -49,11 +49,13 @@ const WishlistPage: React.FC = () => {
                                     className="group relative"
                                 >
                                     <div className="relative aspect-[3/4] mb-4 bg-stone-200 overflow-hidden">
-                                        <img
-                                            src={product.image}
-                                            alt={product.name || product.title}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                        />
+                                        <Link to={`/product/${product.slug || product.id}`} className="block w-full h-full">
+                                            <img
+                                                src={product.image}
+                                                alt={product.name || product.title}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                            />
+                                        </Link>
 
                                         <button
                                             onClick={() => removeFromWishlist(product.id)}

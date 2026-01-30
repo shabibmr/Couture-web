@@ -56,7 +56,7 @@ const AboutPage: React.FC = () => {
                 >
                     <div className="max-w-4xl mx-auto space-y-6 text-stone-700 leading-relaxed">
                         <p className="text-lg font-light">
-                            Founded in 2020, <span className="font-serif text-ruvera-gold">Ruvéra Couture</span> was born from a vision to create
+                            Founded in 2026, <span className="font-serif text-ruvera-gold">Ruvéra Couture</span> was born from a vision to create
                             fashion that speaks to the modern connoisseur—someone who appreciates the marriage of
                             avant-garde design and traditional artistry.
                         </p>
