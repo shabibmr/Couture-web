@@ -41,3 +41,5 @@ customer/.env_production
 admin/.env.production
 customer/.env.production
 create_gold_icon.py
+couture.db
+CLAUDE.md
