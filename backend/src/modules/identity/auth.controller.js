@@ -159,7 +159,7 @@ export const forgotPassword = async (req, res) => {
 export const syncFirebaseUser = async (req, res) => {
     console.log("[AuthController] syncFirebaseUser started");
     try {
-        const { idToken } = req.body;
+        const { idToken, first_name: bodyFirstName, last_name: bodyLastName, phone: bodyPhone } = req.body;
         if (!idToken) {
             console.error("[AuthController] No idToken provided in request");
             return res.status(400).json({ message: 'No idToken provided' });
@@ -171,15 +171,22 @@ export const syncFirebaseUser = async (req, res) => {
         const { uid, email, name, picture, email_verified, phone_number } = decodedToken;
         console.log("[AuthController] Firebase token verified. UID:", uid, "Email:", email, "Phone:", phone_number);
 
-        // Split name into first and last
-        const nameParts = (name || '').split(' ');
-        const first_name = nameParts[0] || 'User';
-        const last_name = nameParts.slice(1).join(' ') || '';
+        // Determine name: Use body fields if provided, otherwise parse from token 'name'
+        let first_name = bodyFirstName;
+        let last_name = bodyLastName;
+
+        if (!first_name) {
+            const nameParts = (name || '').split(' ');
+            first_name = nameParts[0] || 'User';
+            if (!last_name) {
+                last_name = nameParts.slice(1).join(' ') || '';
+            }
+        }
 
         // Strategy to find existing user:
         // 1. By Firebase UID (already linked)
         // 2. By Email (if exists in token)
-        // 3. By Phone (if exists in token)
+        // 3. By Phone (if exists in token or body)
 
         let customer = await Customer.findOne({ where: { oauth_provider_id: uid } });
         let created = false;
@@ -189,9 +196,9 @@ export const syncFirebaseUser = async (req, res) => {
             customer = await Customer.findOne({ where: { email } });
         }
 
-        if (!customer && phone_number) {
+        if (!customer && (phone_number || bodyPhone)) {
             console.log("[AuthController] Search by Phone...");
-            customer = await Customer.findOne({ where: { phone: phone_number } });
+            customer = await Customer.findOne({ where: { phone: phone_number || bodyPhone } });
         }
 
         if (customer) {
@@ -206,8 +213,8 @@ export const syncFirebaseUser = async (req, res) => {
             if (picture && !customer.avatar_url) customer.avatar_url = picture;
             if (email_verified && !customer.email_verified) customer.email_verified = true;
 
-            // If phone number comes from reliable firebase source
-            if (phone_number && !customer.phone) customer.phone = phone_number;
+            // If phone number comes from reliable firebase source or body (on registration)
+            if ((phone_number || bodyPhone) && !customer.phone) customer.phone = phone_number || bodyPhone;
 
             await customer.save();
             console.log("[AuthController] Customer info updated/linked");
@@ -219,7 +226,7 @@ export const syncFirebaseUser = async (req, res) => {
                 last_name,
                 email: email || null, // Allow null if phone-only
                 email_verified: email_verified || false,
-                phone: phone_number || null,
+                phone: phone_number || bodyPhone || null,
                 oauth_provider: 'firebase',
                 oauth_provider_id: uid,
                 avatar_url: picture || null

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Package, CreditCard, RefreshCw, Truck, HelpCircle } from 'lucide-react';
+import SEO from '../components/SEO';
 import logger from '../utils/logger';
 
 interface FAQItem {
@@ -147,6 +148,11 @@ const FAQPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title="FAQ"
+                description="Frequently Asked Questions about shipping, returns, payment, and products at Ruvera Couture."
+                keywords="faq, shipping, returns, payment, help"
+            />
             <div className="max-w-4xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

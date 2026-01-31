@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Check, Package, Truck, Home, ArrowLeft, LucideIcon } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import SEO from '../components/SEO';
 import { Order } from '../types';
 import logger from '../utils/logger';
 
@@ -36,6 +37,11 @@ const OrderTrackingPage: React.FC = () => {
     if (!id) {
         return (
             <div className="bg-beige-bg min-h-screen pt-40 px-6">
+                <SEO
+                    title="Track Order"
+                    description="Track the status of your Ruvera Couture order easily with your order ID."
+                    keywords="track order, order status, shipping status"
+                />
                 <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-stone-100 text-center">
                     <h1 className="font-serif text-3xl text-midnight mb-4">Track Your Order</h1>
                     <p className="text-stone-500 mb-8">Enter your order ID to see the current status.</p>
@@ -94,6 +100,11 @@ const OrderTrackingPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title={`Order ${order.id}`}
+                description={`Track status for order ${order.id}. Current status: ${order.status}.`}
+                keywords={`order tracking, ${order.id}, shipment status`}
+            />
             <div className="max-w-3xl mx-auto">
                 <Link to="/orders" className="flex items-center text-stone-500 mb-8 hover:text-midnight transition-colors">
                     <ArrowLeft size={16} className="mr-2" /> Back to Orders

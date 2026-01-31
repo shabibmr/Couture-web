@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Award, Heart, Users, Sparkles } from 'lucide-react';
+import SEO from '../components/SEO';
 import logger from '../utils/logger';
 
 const AboutPage: React.FC = () => {
@@ -33,6 +34,11 @@ const AboutPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title="About Us"
+                description="Learn about the story, mission, and values of Ruvera Couture. Redefining luxury through craftsmanship and elegance."
+                keywords="about ruvera, our story, mission, values, luxury fashion"
+            />
             <div className="max-w-6xl mx-auto">
                 {/* Hero Section */}
                 <motion.div

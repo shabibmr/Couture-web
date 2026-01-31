@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import LogRocket from 'logrocket'
+import { HelmetProvider } from 'react-helmet-async'
 import './index.css'
 import './firebase'
 import App from './App'
@@ -16,9 +17,11 @@ if (!rootElement) throw new Error('Failed to find the root element');
 createRoot(rootElement).render(
   <StrictMode>
     <AuthProvider>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
+      <HelmetProvider>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      </HelmetProvider>
     </AuthProvider>
   </StrictMode>,
 )

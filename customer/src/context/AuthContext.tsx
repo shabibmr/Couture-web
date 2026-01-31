@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+    const pendingRegistrationProfile = React.useRef<{ firstName: string; lastName: string; phone?: string } | null>(null);
 
     const signIn = async (email: string, password: string) => {
         console.log("[AuthContext] signIn called for email:", email);
@@ -59,8 +60,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
-    const signUp = async (email: string, password: string, displayName: string) => {
-        console.log("[AuthContext] signUp called for email:", email, "displayName:", displayName);
+    const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
+        const displayName = `${firstName} ${lastName}`.trim();
+        console.log("[AuthContext] signUp called for email:", email, "displayName:", displayName, "phone:", phone);
+
+        // Store profile details temporarily for the listener to use in sync call
+        pendingRegistrationProfile.current = { firstName, lastName, phone };
+
         logRocketService.logStateChange({
             context: 'AuthContext',
             action: 'signUp_attempt',
@@ -81,10 +87,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (error) {
             console.error("[AuthContext] Error signing up with email/password", error);
             logRocketService.logError('Sign up failed', error, { email, displayName });
+            // Clear pending profile on error
+            pendingRegistrationProfile.current = null;
             throw error;
         }
     };
 
+    // ... (keep signInWithGoogle, signInWithPhone, verifyOtp, logout as is)
     const signInWithGoogle = async () => {
         console.log("[AuthContext] signInWithGoogle called");
         logRocketService.logStateChange({
@@ -212,12 +221,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         },
                     });
 
-                    // Sync with Backend
+                    // Prepare sync payload
                     const idToken = await firebaseUser.getIdToken();
+                    const syncPayload: any = { idToken };
+
+                    // Add registration profile details if available
+                    if (pendingRegistrationProfile.current) {
+                        syncPayload.first_name = pendingRegistrationProfile.current.firstName;
+                        syncPayload.last_name = pendingRegistrationProfile.current.lastName;
+                        if (pendingRegistrationProfile.current.phone) {
+                            syncPayload.phone = pendingRegistrationProfile.current.phone;
+                        }
+                        console.log("[AuthContext] Including pending registration profile in sync:", pendingRegistrationProfile.current);
+                        // Clear pending profile after use
+                        pendingRegistrationProfile.current = null;
+                    }
+
+                    // Sync with Backend
                     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.SYNC}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ idToken })
+                        body: JSON.stringify(syncPayload)
                     });
 
                     const data = await response.json();

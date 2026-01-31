@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Heart, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import SEO from '../components/SEO';
 import { useShop } from '../context/ShopContext';
 import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
 import { Product } from '../types';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import logger from '../utils/logger';
+import firebaseAnalytics from '../utils/firebaseAnalytics';
 
 // Organic shapes for product cards
 const organicShapes = [
@@ -77,6 +79,13 @@ const SearchResultsPage: React.FC = () => {
                 // Extract unique categories from results
                 const uniqueCategories = [...new Set(normalizedData.map((p: any) => p.category).filter(Boolean))];
                 setCategories(uniqueCategories as string[]);
+
+                // Firebase Analytics: View Search Results
+                firebaseAnalytics.logEvent('view_search_results', {
+                    search_term: query,
+                    number_of_matches: normalizedData.length
+                });
+
             } catch (err: any) {
                 logger.error("Search error", { error: err, query });
                 setError(err.response?.data?.message || 'Search failed');
@@ -183,6 +192,11 @@ const SearchResultsPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title={query ? `Search Results for "${query}"` : "Search Products"}
+                description={query ? `View search results for "${query}" at Ruvera Couture.` : "Search for luxury fashion products at Ruvera Couture."}
+                keywords={`search, products, ${query}, luxury fashion`}
+            />
             <div className="max-w-[1400px] mx-auto">
                 {/* Header */}
                 <motion.div

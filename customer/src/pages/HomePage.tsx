@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import LiquidGallery from '../components/LiquidGallery';
 import Footer from '../components/Footer';
 import { Banner } from '../types';
@@ -45,6 +46,11 @@ const HomePage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen">
+            <SEO
+                title="Home"
+                description="Discover the latest in everyday elegance with Ruvera Couture. Shop our exclusive collection."
+                keywords="fashion, couture, everyday elegance, clothing"
+            />
             {/* Hero Section - Split Layout */}
             <section ref={heroRef} className="relative min-h-screen grid grid-cols-1 md:grid-cols-2 pt-20 md:pt-0">
 

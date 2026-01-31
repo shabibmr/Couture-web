@@ -1,6 +1,7 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Send, Instagram, Facebook, Twitter } from 'lucide-react';
+import SEO from '../components/SEO';
 import logger from '../utils/logger';
 
 const ContactPage: React.FC = () => {
@@ -40,6 +41,11 @@ const ContactPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title="Contact Us"
+                description="Get in touch with Ruvera Couture. We are here to assist you with any inquiries regarding our collections and services."
+                keywords="contact ruvera, customer support, fashion queries, store location"
+            />
             <div className="max-w-6xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

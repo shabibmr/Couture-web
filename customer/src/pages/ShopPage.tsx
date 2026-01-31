@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Heart, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import SEO from '../components/SEO';
 import { useShop } from '../context/ShopContext';
 import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
@@ -102,6 +103,11 @@ const ShopPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title={selectedCategory ? `${selectedCategory} Collection` : 'Shop All'}
+                description="Explore our exclusive collection of high-fashion pieces. Find your perfect style at Ruvera Couture."
+                keywords={`shop, fashion, ${selectedCategory || 'couture'}, luxury, clothing`}
+            />
             <div className="max-w-[1400px] mx-auto">
 
                 <motion.div

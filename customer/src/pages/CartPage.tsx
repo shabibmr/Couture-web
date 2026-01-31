@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, ArrowRight } from 'lucide-react';
+import SEO from '../components/SEO';
 import { useShop } from '../context/ShopContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartItem } from '../types';
@@ -140,6 +141,11 @@ const CartPage: React.FC = () => {
 
     return (
         <div className="container mx-auto px-6 pt-10 pb-20 min-h-screen">
+            <SEO
+                title="Shopping Bag"
+                description="Review items in your shopping bag before proceeding to checkout at Ruvera Couture."
+                keywords="shopping cart, shopping bag, checkout, luxury fashion"
+            />
             <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

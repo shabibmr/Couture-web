@@ -2,6 +2,7 @@ import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import GoogleSignInButton from '../components/GoogleSignInButton';
+import SEO from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
 
@@ -53,6 +54,11 @@ const LoginPage: React.FC = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-beige-bg px-6 py-12">
+            <SEO
+                title="Sign In"
+                description="Sign in to your Ruvera Couture account to manage your orders, wishlist, and profile."
+                keywords="login, sign in, account, ruvera couture"
+            />
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

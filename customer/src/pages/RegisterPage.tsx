@@ -2,6 +2,7 @@ import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import GoogleSignInButton from '../components/GoogleSignInButton';
+import SEO from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
 
@@ -10,10 +11,12 @@ const RegisterPage: React.FC = () => {
     const location = useLocation();
     const { user, signUp } = useAuth();
     const [formData, setFormData] = useState({
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         password: '',
         confirmPassword: '',
+        phone: ''
     });
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +52,7 @@ const RegisterPage: React.FC = () => {
 
         try {
             logger.info("[RegisterPage] Registration attempt", { email: formData.email });
-            await signUp(formData.email, formData.password, formData.name);
+            await signUp(formData.email, formData.password, formData.firstName, formData.lastName, formData.phone);
             logger.info("[RegisterPage] Registration successful");
             // navigate is handled by the useEffect above
         } catch (err: any) {
@@ -62,6 +65,11 @@ const RegisterPage: React.FC = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-beige-bg px-6 py-12">
+            <SEO
+                title="Create Account"
+                description="Join Ruvera Couture to access exclusive collections, track your orders, and enjoy a personalized shopping experience."
+                keywords="register, create account, sign up, ruvera couture"
+            />
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -80,20 +88,37 @@ const RegisterPage: React.FC = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
-                            Full Name
-                        </label>
-                        <input
-                            type="text"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
-                            placeholder="John Doe"
-                            disabled={isLoading}
-                            required
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
+                                First Name
+                            </label>
+                            <input
+                                type="text"
+                                name="firstName"
+                                value={formData.firstName}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
+                                placeholder="John"
+                                disabled={isLoading}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
+                                Last Name
+                            </label>
+                            <input
+                                type="text"
+                                name="lastName"
+                                value={formData.lastName}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
+                                placeholder="Doe"
+                                disabled={isLoading}
+                                required
+                            />
+                        </div>
                     </div>
 
                     <div>
@@ -109,6 +134,21 @@ const RegisterPage: React.FC = () => {
                             placeholder="you@example.com"
                             disabled={isLoading}
                             required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
+                            Phone Number
+                        </label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
+                            placeholder="+1234567890"
+                            disabled={isLoading}
                         />
                     </div>
 
