@@ -50,19 +50,19 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/wishlist', wishlistRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/coupons', couponRoutes);
-app.use('/api/banners', bannerRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/notifications', notificationRoutes);
+app.use('/auth', authRoutes);
+app.use('/customers', customerRoutes);
+app.use('/wishlist', wishlistRoutes);
+app.use('/products', productRoutes);
+app.use('/cart', cartRoutes);
+app.use('/orders', orderRoutes);
+app.use('/payment', paymentRoutes);
+app.use('/inventory', inventoryRoutes);
+app.use('/coupons', couponRoutes);
+app.use('/banners', bannerRoutes);
+app.use('/dashboard', dashboardRoutes);
+app.use('/settings', settingsRoutes);
+app.use('/notifications', notificationRoutes);
 
 // Health Check
 app.get('/health', (_req: Request, res: Response) => {
@@ -93,12 +93,19 @@ process.on('exit', (code) => {
     console.trace('Exit trace');
 });
 
-process.on('SIGTERM', () => {
-    console.log('Received SIGTERM');
-});
+const gracefulShutdown = async (signal: string) => {
+    console.log(`Received ${signal}. Shutting down gracefully...`);
+    try {
+        await sequelize.close();
+        console.log('Database connection closed.');
+        process.exit(0);
+    } catch (err) {
+        console.error('Error closing database connection:', err);
+        process.exit(1);
+    }
+};
 
-process.on('SIGINT', () => {
-    console.log('Received SIGINT');
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 startServer();
