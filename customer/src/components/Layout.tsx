@@ -33,7 +33,6 @@ const Layout: React.FC = () => {
                     {/* Desktop Menu */}
                     <div className="hidden md:flex items-center gap-8 text-xs font-normal tracking-wide text-stone-800">
                         <Link to="/shop" className="hover:text-ruvera-gold transition-colors">New Arrivals</Link>
-                        <Link to="/about" className="hover:text-ruvera-gold transition-colors">About</Link>
                     </div>
 
                     {/* Icons */}
@@ -121,13 +120,7 @@ const Layout: React.FC = () => {
                             >
                                 New Arrivals
                             </Link>
-                            <Link
-                                to="/about"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="block text-base font-light tracking-wide text-stone-800 hover:text-ruvera-gold transition-colors"
-                            >
-                                About
-                            </Link>
+
                         </div>
 
                         {/* Divider */}
