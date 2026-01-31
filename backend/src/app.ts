@@ -25,7 +25,15 @@ import notificationRoutes from './modules/notification/notification.routes.js';
 
 // Middleware - CORS configuration
 app.use(cors({
-    origin: ['http://localhost:3014', 'http://localhost:3000'],
+    origin: [
+        'http://localhost:3014',
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'https://ruveracouture.com',
+        'https://admin.ruveracouture.com',
+        process.env.FRONTEND_URL,
+        process.env.ADMIN_URL
+    ].filter(Boolean) as string[], // Filter out undefined values
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
