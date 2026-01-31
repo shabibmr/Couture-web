@@ -159,7 +159,7 @@ export const forgotPassword = async (req, res) => {
 export const syncFirebaseUser = async (req, res) => {
     console.log("[AuthController] syncFirebaseUser started");
     try {
-        const { idToken, first_name: bodyFirstName, last_name: bodyLastName, phone: bodyPhone } = req.body;
+        const { idToken, first_name: bodyFirstName, last_name: bodyLastName, phone: bodyPhone, email: bodyEmail } = req.body;
         if (!idToken) {
             console.error("[AuthController] No idToken provided in request");
             return res.status(400).json({ message: 'No idToken provided' });
@@ -191,9 +191,9 @@ export const syncFirebaseUser = async (req, res) => {
         let customer = await Customer.findOne({ where: { oauth_provider_id: uid } });
         let created = false;
 
-        if (!customer && email) {
+        if (!customer && (email || bodyEmail)) {
             console.log("[AuthController] Search by Email...");
-            customer = await Customer.findOne({ where: { email } });
+            customer = await Customer.findOne({ where: { email: email || bodyEmail } });
         }
 
         if (!customer && (phone_number || bodyPhone)) {
@@ -216,6 +216,9 @@ export const syncFirebaseUser = async (req, res) => {
             // If phone number comes from reliable firebase source or body (on registration)
             if ((phone_number || bodyPhone) && !customer.phone) customer.phone = phone_number || bodyPhone;
 
+            // Update email if provided from body (for phone login profile completion)
+            if (bodyEmail && !customer.email) customer.email = bodyEmail;
+
             await customer.save();
             console.log("[AuthController] Customer info updated/linked");
         } else {
@@ -224,7 +227,7 @@ export const syncFirebaseUser = async (req, res) => {
             customer = await Customer.create({
                 first_name,
                 last_name,
-                email: email || null, // Allow null if phone-only
+                email: email || bodyEmail || null, // Allow null if phone-only
                 email_verified: email_verified || false,
                 phone: phone_number || bodyPhone || null,
                 oauth_provider: 'firebase',
@@ -336,5 +339,39 @@ export const updateCurrentUser = async (req, res) => {
     } catch (error) {
         console.error('Update current user error:', error);
         res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const checkPhoneUser = async (req, res) => {
+    try {
+        const { phone } = req.body;
+
+        if (!phone) {
+            return res.status(400).json({ message: 'Phone number is required' });
+        }
+
+        console.log(`[AuthController] Checking if phone exists: ${phone}`);
+        const customer = await Customer.findOne({ where: { phone } });
+
+        if (customer) {
+            console.log(`[AuthController] Phone found. Customer ID: ${customer.id}`);
+            // Returning user
+            res.json({
+                exists: true,
+                user: {
+                    id: customer.id,
+                    first_name: customer.first_name,
+                    last_name: customer.last_name,
+                    email: customer.email
+                }
+            });
+        } else {
+            console.log('[AuthController] Phone not found. New user.');
+            // New user
+            res.json({ exists: false });
+        }
+    } catch (error) {
+        console.error('[AuthController] Check phone user error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };

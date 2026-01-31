@@ -99,6 +99,8 @@ export interface AuthContextType {
     signInWithGoogle: () => Promise<void>;
     signInWithPhone: (phoneNumber: string, appVerifier: any) => Promise<void>;
     verifyOtp: (otp: string) => Promise<void>;
+    completePhoneProfile: (firstName: string, lastName: string, email?: string) => Promise<void>;
     logout: () => Promise<void>;
 }
+
 

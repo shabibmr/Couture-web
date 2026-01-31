@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
         FORGOT_PASSWORD: '/auth/forgot-password',
         RESET_PASSWORD: '/auth/reset-password',
         SYNC: '/auth/firebase-sync',
+        CHECK_PHONE: '/auth/check-phone',
         ME: '/auth/me',
         UPDATE_ME: '/auth/me',
         ADDRESSES: '/auth/addresses',

@@ -171,6 +171,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
+    const completePhoneProfile = async (firstName: string, lastName: string, email?: string) => {
+        console.log("[AuthContext] completePhoneProfile called", { firstName, lastName, email });
+        logRocketService.logStateChange({
+            context: 'AuthContext',
+            action: 'complete_phone_profile_attempt',
+            newValue: { firstName, lastName, hasEmail: !!email },
+        });
+
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            const error = new Error('No authenticated user');
+            logRocketService.logError('Profile completion failed', error);
+            throw error;
+        }
+
+        try {
+            // Update Firebase profile with display name
+            const displayName = `${firstName} ${lastName}`.trim();
+            await updateProfile(currentUser, { displayName });
+            console.log("[AuthContext] Firebase profile updated with displayName:", displayName);
+
+            // Store profile data for backend sync
+            pendingRegistrationProfile.current = {
+                firstName,
+                lastName,
+                phone: currentUser.phoneNumber || undefined,
+                email: email || undefined
+            };
+            console.log("[AuthContext] Stored pending profile for backend sync");
+
+            logRocketService.logStateChange({
+                context: 'AuthContext',
+                action: 'complete_phone_profile_success',
+            });
+
+            // Force a re-sync by reloading the user
+            // This will trigger onAuthStateChanged with updated profile
+            await currentUser.reload();
+            console.log("[AuthContext] User reloaded, triggering sync");
+        } catch (error) {
+            console.error("[AuthContext] Error completing phone profile", error);
+            logRocketService.logError('Profile completion failed', error);
+            throw error;
+        }
+    };
+
     const logout = async () => {
         console.log("[AuthContext] logout called");
         logRocketService.logStateChange({
@@ -231,6 +277,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         syncPayload.last_name = pendingRegistrationProfile.current.lastName;
                         if (pendingRegistrationProfile.current.phone) {
                             syncPayload.phone = pendingRegistrationProfile.current.phone;
+                        }
+                        // Include email if provided (for phone login profile completion)
+                        if (pendingRegistrationProfile.current.email) {
+                            syncPayload.email = pendingRegistrationProfile.current.email;
                         }
                         console.log("[AuthContext] Including pending registration profile in sync:", pendingRegistrationProfile.current);
                         // Clear pending profile after use
@@ -339,6 +389,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         signInWithGoogle,
         signInWithPhone,
         verifyOtp,
+        completePhoneProfile,
         logout,
         loading
     };

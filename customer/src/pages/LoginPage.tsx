@@ -2,6 +2,7 @@ import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import GoogleSignInButton from '../components/GoogleSignInButton';
+import PhoneLogin from '../components/PhoneLogin';
 import SEO from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 import logger from '../utils/logger';
@@ -10,24 +11,26 @@ const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, signIn } = useAuth();
+    const [activeTab, setActiveTab] = useState<'email' | 'phone'>('email');
     const [formData, setFormData] = useState({
         email: '',
         password: '',
     });
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isRegistering, setIsRegistering] = useState(false);
 
     // Get return URL from location state
     const from = (location.state as any)?.from || '/';
 
-    // Redirect if already logged in
+    // Redirect if already logged in, unless registering (phone flow)
     useEffect(() => {
         logger.info('Page Mounted: LoginPage');
-        if (user) {
+        if (user && !isRegistering) {
             logger.info("[LoginPage] User already logged in, redirecting", { destination: from });
             navigate(from, { replace: true });
         }
-    }, [user, navigate, from]);
+    }, [user, isRegistering, navigate, from]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -52,6 +55,21 @@ const LoginPage: React.FC = () => {
         }
     };
 
+    const handlePhoneSuccess = () => {
+        logger.info('[LoginPage] Phone authentication successful');
+        // If we were registering (blocked auto-redirect), navigate manually now
+        if (isRegistering) {
+            navigate(from, { replace: true });
+        }
+    };
+
+    const handleUserTypeIdentified = (isNewUser: boolean) => {
+        if (isNewUser) {
+            logger.info('[LoginPage] New user detected, pausing auto-redirect');
+            setIsRegistering(true);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-beige-bg px-6 py-12">
             <SEO
@@ -70,71 +88,125 @@ const LoginPage: React.FC = () => {
                     <p className="text-stone-500 font-light">Sign in to continue your journey</p>
                 </div>
 
+                {/* Tab Navigation */}
+                <div className="flex border-b border-stone-200 mb-6">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveTab('email');
+                            setError(null);
+                        }}
+                        className={`flex-1 pb-3 text-sm font-bold uppercase tracking-widest transition-all ${activeTab === 'email'
+                            ? 'text-ruvera-gold border-b-2 border-ruvera-gold'
+                            : 'text-stone-500 border-b-2 border-transparent hover:text-ruvera-gold'
+                            }`}
+                    >
+                        Email
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveTab('phone');
+                            setError(null);
+                        }}
+                        className={`flex-1 pb-3 text-sm font-bold uppercase tracking-widest transition-all ${activeTab === 'phone'
+                            ? 'text-ruvera-gold border-b-2 border-ruvera-gold'
+                            : 'text-stone-500 border-b-2 border-transparent hover:text-ruvera-gold'
+                            }`}
+                    >
+                        Phone
+                    </button>
+                </div>
+
                 {error && (
                     <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
-                            Email Address
-                        </label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
-                            placeholder="you@example.com"
-                            disabled={isLoading}
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
-                            Password
-                        </label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
-                            placeholder="••••••••"
-                            disabled={isLoading}
-                            required
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm">
-                        <label className="flex items-center text-stone-600">
-                            <input type="checkbox" className="mr-2 rounded text-ruvera-gold focus:ring-ruvera-gold" />
-                            Remember me
-                        </label>
-                        <a href="#" className="text-ruvera-gold hover:text-midnight transition-colors">
-                            Forgot password?
-                        </a>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className={`w-full py-4 bg-ruvera-gold text-white font-medium uppercase tracking-widest hover:bg-midnight transition-colors duration-300 shadow-lg hover:shadow-xl rounded-lg flex items-center justify-center ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                {/* Tab Content */}
+                {activeTab === 'email' ? (
+                    <motion.form
+                        key="email-form"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.3 }}
+                        onSubmit={handleSubmit}
+                        className="space-y-6"
                     >
-                        {isLoading ? (
-                            <>
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Signing In...
-                            </>
-                        ) : 'Sign In'}
-                    </button>
-                </form>
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
+                                Email Address
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
+                                placeholder="you@example.com"
+                                disabled={isLoading}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
+                                Password
+                            </label>
+                            <input
+                                type="password"
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold transition-all"
+                                placeholder="••••••••"
+                                disabled={isLoading}
+                                required
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm">
+                            <label className="flex items-center text-stone-600">
+                                <input type="checkbox" className="mr-2 rounded text-ruvera-gold focus:ring-ruvera-gold" />
+                                Remember me
+                            </label>
+                            <a href="#" className="text-ruvera-gold hover:text-midnight transition-colors">
+                                Forgot password?
+                            </a>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className={`w-full py-4 bg-ruvera-gold text-white font-medium uppercase tracking-widest hover:bg-midnight transition-colors duration-300 shadow-lg hover:shadow-xl rounded-lg flex items-center justify-center ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Signing In...
+                                </>
+                            ) : 'Sign In'}
+                        </button>
+                    </motion.form>
+                ) : (
+                    <motion.div
+                        key="phone-form"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <PhoneLogin
+                            onSuccess={handlePhoneSuccess}
+                            onUserTypeIdentified={handleUserTypeIdentified}
+                        />
+                    </motion.div>
+                )}
 
                 <div className="my-6 flex items-center justify-between">
                     <div className="h-px bg-stone-200 flex-1"></div>

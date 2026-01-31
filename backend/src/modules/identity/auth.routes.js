@@ -7,7 +7,8 @@ import {
     resetPassword,
     getCurrentUser,
     updateCurrentUser,
-    syncFirebaseUser
+    syncFirebaseUser,
+    checkPhoneUser
 } from './auth.controller.js';
 
 
@@ -32,6 +33,7 @@ router.post('/admin/login', validate(loginSchema), loginAdmin);
 router.post('/forgot-password', validate(requestPasswordResetSchema), forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 router.post('/firebase-sync', validate(syncFirebaseUserSchema), syncFirebaseUser);
+router.post('/check-phone', checkPhoneUser);
 router.get('/me', authenticate, getCurrentUser);
 router.put('/me', authenticate, updateCurrentUser);
 
