@@ -32,7 +32,7 @@ app.use(cors({
 }));
 
 // Handle preflight requests
-app.options('*', cors());
+app.options(/.*/, cors());
 
 app.use(express.json({
     limit: '50mb',
@@ -67,8 +67,8 @@ const startServer = async (): Promise<void> => {
         await sequelize.authenticate();
         console.log('Database connection established successfully.');
 
-        // Sync models (disabled - we use SQL scripts for schema management)
-        // await sequelize.sync(); 
+        // Sync models
+        await sequelize.sync({ alter: true });
 
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);

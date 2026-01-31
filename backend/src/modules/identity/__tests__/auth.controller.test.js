@@ -43,7 +43,8 @@ const {
     forgotPassword,
     resetPassword,
     getCurrentUser,
-    updateCurrentUser
+    updateCurrentUser,
+    syncFirebaseUser
 } = await import('../auth.controller.js');
 
 describe('Auth Controller', () => {
@@ -191,6 +192,113 @@ describe('Auth Controller', () => {
             expect(customer.first_name).toBe('New Name');
             expect(customer.save).toHaveBeenCalled();
             expect(res.json).toHaveBeenCalled();
+        });
+    });
+
+    describe('syncFirebaseUser', () => {
+        it('should create a new user with NULL email when token ONLY has phone number', async () => {
+            req.body = { idToken: 'valid_phone_token' };
+
+            // Mock Firebase verification to return phone only
+            mockFirebaseAdmin.auth().verifyIdToken.mockResolvedValue({
+                uid: 'firebase-uid-123',
+                phone_number: '+1234567890'
+            });
+
+            // Mock DB find returning null (new user)
+            mockCustomer.findOne.mockResolvedValue(null);
+
+            // Mock Create
+            const createdUser = {
+                id: 1,
+                phone: '+1234567890',
+                email: null,
+                save: jest.fn()
+            };
+            mockCustomer.create.mockResolvedValue(createdUser);
+            mockJwt.sign.mockReturnValue('new_token');
+
+            await syncFirebaseUser(req, res);
+
+            expect(mockCustomer.create).toHaveBeenCalledWith(expect.objectContaining({
+                email: null,
+                phone: '+1234567890',
+                oauth_provider_id: 'firebase-uid-123'
+            }));
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+                message: expect.stringContaining('registered and synced'),
+                token: 'new_token'
+            }));
+        });
+
+        it('should link existing user by phone number', async () => {
+            req.body = { idToken: 'valid_token_phone_match' };
+
+            mockFirebaseAdmin.auth().verifyIdToken.mockResolvedValue({
+                uid: 'firebase-uid-new',
+                phone_number: '+9876543210'
+            });
+
+            // Mock findOne: 
+            // 1st call (UID) -> null
+            // 2nd call (Email) -> skipped (no email)
+            // 3rd call (Phone) -> found
+            mockCustomer.findOne
+                .mockResolvedValueOnce(null) // UID check
+                .mockResolvedValueOnce({     // Phone check
+                    id: 2,
+                    phone: '+9876543210',
+                    save: jest.fn()
+                });
+
+            mockJwt.sign.mockReturnValue('linked_token');
+
+            await syncFirebaseUser(req, res);
+
+            expect(mockCustomer.create).not.toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+                message: 'User synced successfully',
+                token: 'linked_token'
+            }));
+        });
+
+        it('should link existing user by email', async () => {
+            req.body = { idToken: 'valid_token_email_match' };
+
+            mockFirebaseAdmin.auth().verifyIdToken.mockResolvedValue({
+                uid: 'firebase-uid-email',
+                email: 'existing@example.com'
+            });
+
+            mockCustomer.findOne
+                .mockResolvedValueOnce(null) // UID check
+                .mockResolvedValueOnce({     // Email check
+                    id: 3,
+                    email: 'existing@example.com',
+                    save: jest.fn()
+                });
+
+            mockJwt.sign.mockReturnValue('linked_token');
+
+
+            await syncFirebaseUser(req, res);
+
+            expect(mockCustomer.create).not.toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+                message: 'User synced successfully'
+            }));
+        });
+
+        it('should handle invalid token errors', async () => {
+            req.body = { idToken: 'invalid_token' };
+            mockFirebaseAdmin.auth().verifyIdToken.mockRejectedValue(new Error('Invalid token'));
+
+            await syncFirebaseUser(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+                message: expect.stringContaining('Invalid Firebase token')
+            }));
         });
     });
 });

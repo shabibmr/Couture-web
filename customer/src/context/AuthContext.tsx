@@ -6,7 +6,10 @@ import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    updateProfile
+    updateProfile,
+    signInWithPhoneNumber,
+    RecaptchaVerifier,
+    ConfirmationResult
 } from 'firebase/auth';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api.config';
 import { AuthContextType, User as AppUser } from '../types';
@@ -30,6 +33,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
     const signIn = async (email: string, password: string) => {
         console.log("[AuthContext] signIn called for email:", email);
@@ -100,6 +104,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (error) {
             console.error("[AuthContext] Error signing in with Google", error);
             logRocketService.logError('Google sign in failed', error);
+        }
+    };
+
+    const signInWithPhone = async (phoneNumber: string, appVerifier: RecaptchaVerifier) => {
+        console.log("[AuthContext] signInWithPhone called for number:", phoneNumber);
+        logRocketService.logStateChange({
+            context: 'AuthContext',
+            action: 'phone_signin_attempt',
+            newValue: { phoneNumber },
+        });
+
+        try {
+            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            setConfirmationResult(result);
+            console.log("[AuthContext] OTP sent successfully");
+
+            logRocketService.logStateChange({
+                context: 'AuthContext',
+                action: 'otp_sent_success',
+                newValue: { phoneNumber },
+            });
+        } catch (error) {
+            console.error("[AuthContext] Error sending OTP", error);
+            logRocketService.logError('Phone sign in failed', error, { phoneNumber });
+            throw error;
+        }
+    };
+
+    const verifyOtp = async (otp: string) => {
+        console.log("[AuthContext] verifyOtp called");
+        logRocketService.logStateChange({
+            context: 'AuthContext',
+            action: 'otp_verify_attempt',
+        });
+
+        if (!confirmationResult) {
+            const error = new Error('No confirmation result available. Please request OTP first.');
+            logRocketService.logError('OTP verification failed', error);
+            throw error;
+        }
+
+        try {
+            await confirmationResult.confirm(otp);
+            console.log("[AuthContext] OTP verified successfully");
+
+            logRocketService.logStateChange({
+                context: 'AuthContext',
+                action: 'otp_verify_success',
+            });
+
+            setConfirmationResult(null);
+        } catch (error) {
+            console.error("[AuthContext] Error verifying OTP", error);
+            logRocketService.logError('OTP verification failed', error);
+            throw error;
         }
     };
 
@@ -254,6 +313,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         signIn,
         signUp,
         signInWithGoogle,
+        signInWithPhone,
+        verifyOtp,
         logout,
         loading
     };

@@ -168,39 +168,64 @@ export const syncFirebaseUser = async (req, res) => {
         // Verify Firebase Token
         console.log("[AuthController] Verifying Firebase idToken...");
         const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const { email, name, picture, uid, email_verified } = decodedToken;
-        console.log("[AuthController] Firebase token verified for email:", email, "UID:", uid);
+        const { uid, email, name, picture, email_verified, phone_number } = decodedToken;
+        console.log("[AuthController] Firebase token verified. UID:", uid, "Email:", email, "Phone:", phone_number);
 
         // Split name into first and last
         const nameParts = (name || '').split(' ');
         const first_name = nameParts[0] || 'User';
         const last_name = nameParts.slice(1).join(' ') || '';
 
-        // Find or create customer
-        console.log("[AuthController] Finding or creating customer in database...");
-        let [customer, created] = await Customer.findOrCreate({
-            where: { email },
-            defaults: {
-                first_name,
-                last_name,
-                email,
-                email_verified: email_verified || false,
-                oauth_provider: 'firebase',
-                oauth_provider_id: uid,
-                avatar_url: picture
-            }
-        });
+        // Strategy to find existing user:
+        // 1. By Firebase UID (already linked)
+        // 2. By Email (if exists in token)
+        // 3. By Phone (if exists in token)
 
-        if (created) {
-            console.log("[AuthController] New customer created. DB ID:", customer.id);
-        } else {
+        let customer = await Customer.findOne({ where: { oauth_provider_id: uid } });
+        let created = false;
+
+        if (!customer && email) {
+            console.log("[AuthController] Search by Email...");
+            customer = await Customer.findOne({ where: { email } });
+        }
+
+        if (!customer && phone_number) {
+            console.log("[AuthController] Search by Phone...");
+            customer = await Customer.findOne({ where: { phone: phone_number } });
+        }
+
+        if (customer) {
             console.log("[AuthController] Customer found. DB ID:", customer.id);
-            // If customer exists but wasn't created now, update their info if needed
+            // Update existing customer
             customer.oauth_provider = 'firebase';
             customer.oauth_provider_id = uid;
-            if (picture) customer.avatar_url = picture;
+
+            // Only update fields if they are currently null/empty to allow user override persistence
+            // OR if strictly syncing from reliable sources.
+            // For now, we update if we have new info from social login.
+            if (picture && !customer.avatar_url) customer.avatar_url = picture;
+            if (email_verified && !customer.email_verified) customer.email_verified = true;
+
+            // If phone number comes from reliable firebase source
+            if (phone_number && !customer.phone) customer.phone = phone_number;
+
             await customer.save();
-            console.log("[AuthController] Customer info updated");
+            console.log("[AuthController] Customer info updated/linked");
+        } else {
+            console.log("[AuthController] Creating new customer...");
+            // Create New Customer
+            customer = await Customer.create({
+                first_name,
+                last_name,
+                email: email || null, // Allow null if phone-only
+                email_verified: email_verified || false,
+                phone: phone_number || null,
+                oauth_provider: 'firebase',
+                oauth_provider_id: uid,
+                avatar_url: picture || null
+            });
+            created = true;
+            console.log("[AuthController] New customer created. DB ID:", customer.id);
         }
 
         const token = generateToken(customer.id, 'customer');
@@ -214,12 +239,13 @@ export const syncFirebaseUser = async (req, res) => {
                 email: customer.email,
                 first_name: customer.first_name,
                 last_name: customer.last_name,
-                avatar_url: customer.avatar_url
+                avatar_url: customer.avatar_url,
+                phone: customer.phone
             },
         });
     } catch (error) {
         console.error('[AuthController] Firebase sync error:', error);
-        res.status(401).json({ message: 'Invalid Firebase token', error: error.message });
+        res.status(401).json({ message: 'Invalid Firebase token or Sync Error', error: error.message });
     }
 };
 

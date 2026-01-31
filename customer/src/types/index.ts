@@ -97,5 +97,8 @@ export interface AuthContextType {
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (email: string, password: string, displayName: string) => Promise<void>;
     signInWithGoogle: () => Promise<void>;
+    signInWithPhone: (phoneNumber: string, appVerifier: any) => Promise<void>;
+    verifyOtp: (otp: string) => Promise<void>;
     logout: () => Promise<void>;
 }
+

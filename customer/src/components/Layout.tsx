@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { ShoppingBag, Search, Menu, Heart, User } from 'lucide-react';
+import { ShoppingBag, Search, Menu, Heart, User, X } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import CartDrawer from './CartDrawer';
@@ -11,6 +11,7 @@ import logo from '../assets/ruvera_logo.svg';
 const Layout: React.FC = () => {
     const { setIsCartOpen, setIsSearchOpen, cart, wishlist } = useShop();
     const { user } = useAuth();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
         <div className="relative min-h-screen bg-beige-bg">
@@ -81,12 +82,109 @@ const Layout: React.FC = () => {
                         )}
 
                         {/* Mobile Menu Toggle */}
-                        <button className="md:hidden">
+                        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden">
                             <Menu size={24} strokeWidth={1.5} />
                         </button>
                     </div>
                 </div>
             </nav>
+
+            {/* Mobile Menu Drawer */}
+            <div className={`fixed inset-0 z-50 md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                {/* Backdrop */}
+                <div
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                />
+
+                {/* Menu Panel */}
+                <div className={`absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 py-6 border-b border-stone-200">
+                        <h2 className="text-lg font-light tracking-wide text-stone-800">Menu</h2>
+                        <button
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="text-stone-600 hover:text-stone-900 transition-colors"
+                        >
+                            <X size={24} strokeWidth={1.5} />
+                        </button>
+                    </div>
+
+                    {/* Menu Content */}
+                    <div className="px-6 py-8 space-y-6">
+                        {/* Navigation Links */}
+                        <div className="space-y-4">
+                            <Link
+                                to="/shop"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="block text-base font-light tracking-wide text-stone-800 hover:text-ruvera-gold transition-colors"
+                            >
+                                New Arrivals
+                            </Link>
+                            <Link
+                                to="/about"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="block text-base font-light tracking-wide text-stone-800 hover:text-ruvera-gold transition-colors"
+                            >
+                                About
+                            </Link>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="border-t border-stone-200" />
+
+                        {/* User Actions */}
+                        <div className="space-y-4">
+                            {user ? (
+                                <>
+                                    {/* Profile */}
+                                    <Link
+                                        to="/profile"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="flex items-center gap-3 text-base font-light tracking-wide text-stone-800 hover:text-ruvera-gold transition-colors"
+                                    >
+                                        {user.photoURL ? (
+                                            <img
+                                                src={user.photoURL}
+                                                alt={user.displayName || 'Profile'}
+                                                className="w-8 h-8 rounded-full border border-stone-200 object-cover"
+                                            />
+                                        ) : (
+                                            <User size={20} strokeWidth={1.5} />
+                                        )}
+                                        <span>Profile</span>
+                                    </Link>
+
+                                    {/* Wishlist */}
+                                    <Link
+                                        to="/wishlist"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="flex items-center gap-3 text-base font-light tracking-wide text-stone-800 hover:text-ruvera-gold transition-colors"
+                                    >
+                                        <Heart size={20} strokeWidth={1.5} />
+                                        <span>Wishlist</span>
+                                        {wishlist.length > 0 && (
+                                            <span className="ml-auto text-xs text-ruvera-gold">
+                                                {wishlist.length}
+                                            </span>
+                                        )}
+                                    </Link>
+                                </>
+                            ) : (
+                                /* Sign In for guests */
+                                <Link
+                                    to="/login"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="flex items-center gap-3 text-base font-light tracking-wide text-stone-800 hover:text-ruvera-gold transition-colors"
+                                >
+                                    <User size={20} strokeWidth={1.5} />
+                                    <span>Sign In</span>
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Page Content */}
             <main className="pt-10 min-h-screen">

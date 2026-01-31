@@ -109,7 +109,7 @@ const ProductDetail: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6 flex items-center justify-center">
+            <div className="bg-beige-bg min-h-screen pt-24 md:pt-32 pb-20 px-6 flex items-center justify-center">
                 <div className="text-xl font-serif text-ruvera-gold animate-pulse">Revealing Masterpiece...</div>
             </div>
         );
@@ -117,7 +117,7 @@ const ProductDetail: React.FC = () => {
 
     if (error || !product) {
         return (
-            <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6 flex items-center justify-center">
+            <div className="bg-beige-bg min-h-screen pt-24 md:pt-32 pb-20 px-6 flex items-center justify-center">
                 <div className="text-xl font-serif text-red-500">Error: {error || 'Product not found'}</div>
             </div>
         );
@@ -152,7 +152,7 @@ const ProductDetail: React.FC = () => {
     return (
         <div className="bg-beige-bg">
             <div className="container mx-auto px-6 pb-20">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-32">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-24 md:pt-32">
                     {/* Product Image */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
