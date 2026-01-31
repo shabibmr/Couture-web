@@ -65,10 +65,12 @@ app.get('/health', (_req: Request, res: Response) => {
 const startServer = async (): Promise<void> => {
     try {
         await sequelize.authenticate();
-        console.log('Database connection established successfully.');
-
         // Sync models
-        await sequelize.sync({ alter: true });
+        // Note: { alter: true } caused ER_CANT_DROP_FIELD_OR_KEY error. 
+        // Using default sync (CREATE IF NOT EXISTS) for stability.
+        // await sequelize.sync({ alter: true }); 
+        await sequelize.sync();
+        console.log('Database synced.');
 
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
