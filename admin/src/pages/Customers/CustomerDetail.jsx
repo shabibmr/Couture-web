@@ -1,25 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, Package, Calendar, Clock, Star } from 'lucide-react';
-import { getCustomerById } from '../../data/mockCustomers';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Mail, Phone, MapPin, Package, Calendar, Clock, Star, Trash2 } from 'lucide-react';
+import api from '../../services/api';
 
 import { formatCurrency } from '../../utils/currency';
 
+const capitalizeFirstLetter = (string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
 export default function CustomerDetail() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [customer, setCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadCustomer = async () => {
-            setLoading(true);
-            const data = await getCustomerById(id);
-            setCustomer(data);
-            setLoading(false);
+            try {
+                setLoading(true);
+                const response = await api.get(`/customers/${id}`);
+                const data = response.data;
+
+                // Transform backend data to match UI expectations
+                const mappedCustomer = {
+                    ...data,
+                    name: `${data.first_name} ${data.last_name}`,
+                    joinedDate: data.created_at,
+                    avatar: data.avatar_url,
+                    location: 'N/A', // Not currently in customer model
+                    ordersCount: data.orders ? data.orders.length : 0,
+                    totalSpent: data.orders ? data.orders.reduce((sum, order) => sum + parseFloat(order.total_amount), 0) : 0,
+                    status: data.status || 'Active', // Default status
+                    recentOrders: data.orders ? data.orders.map(order => ({
+                        id: order.order_number || order.id,
+                        date: order.order_date,
+                        total: order.total_amount,
+                        status: capitalizeFirstLetter(order.status),
+                        items: 'N/A' // Items not included in current response
+                    })) : []
+                };
+
+                setCustomer(mappedCustomer);
+                setLoading(false);
+            } catch (error) {
+                console.error("Failed to load customer:", error);
+                setCustomer(null);
+                setLoading(false);
+            }
         };
 
         loadCustomer();
     }, [id]);
+
+    const handleDeleteCustomer = async () => {
+        if (window.confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {
+            try {
+                setLoading(true);
+                await api.delete(`/customers/${id}`);
+                navigate('/customers');
+            } catch (error) {
+                console.error('Error deleting customer:', error);
+                setLoading(false);
+                alert('Failed to delete customer. Please try again.');
+            }
+        }
+    };
 
     if (loading) return <div className="p-12 text-center text-stone-400">Loading profile...</div>;
     if (!customer) return <div className="p-12 text-center text-red-500">Customer not found.</div>;
@@ -27,10 +73,19 @@ export default function CustomerDetail() {
     return (
         <div className="max-w-5xl mx-auto space-y-8">
             {/* Navigation */}
-            <Link to="/customers" className="inline-flex items-center gap-2 text-stone-400 hover:text-midnight transition-colors">
-                <ArrowLeft size={20} />
-                <span className="font-medium">Back to Customers</span>
-            </Link>
+            <div className="flex justify-between items-center">
+                <Link to="/customers" className="inline-flex items-center gap-2 text-stone-400 hover:text-midnight transition-colors">
+                    <ArrowLeft size={20} />
+                    <span className="font-medium">Back to Customers</span>
+                </Link>
+                <button
+                    onClick={handleDeleteCustomer}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                >
+                    <Trash2 size={16} />
+                    <span>Delete Customer</span>
+                </button>
+            </div>
 
             {/* Header Profile Card */}
             <div className="bg-white rounded-2xl p-8 border border-stone-100 shadow-lg relative overflow-hidden">

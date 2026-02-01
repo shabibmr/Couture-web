@@ -83,7 +83,7 @@ const CheckoutPage: React.FC = () => {
         };
 
         recalculateTotals();
-    }, [cart.length, orderSummary.total]); // Only run when cart loads or total is checked
+    }, [cart, orderSummary.total]); // Re-run when cart array changes (including async merge after login)
 
     const { total } = orderSummary;
 

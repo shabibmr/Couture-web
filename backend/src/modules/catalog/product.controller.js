@@ -12,7 +12,7 @@ import { Op } from 'sequelize';
 
 export const getAllProducts = async (req, res) => {
     try {
-        const { page = 1, limit = 10, category_slug, brand_slug, search, q, status } = req.query;
+        const { page = 1, limit = 100, category_slug, brand_slug, search, q, status, is_featured, is_new_arrival } = req.query;
         const offset = (page - 1) * limit;
 
         const where = {};
@@ -25,6 +25,14 @@ export const getAllProducts = async (req, res) => {
         } else {
             // Default to active only (backward compatibility)
             where.is_active = true;
+        }
+
+        if (is_featured !== undefined) {
+            where.is_featured = is_featured === 'true' || is_featured === true;
+        }
+
+        if (is_new_arrival !== undefined) {
+            where.is_new_arrival = is_new_arrival === 'true' || is_new_arrival === true;
         }
 
         const searchQuery = search || q;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, User, MapPin, CreditCard, Printer, Truck } from 'lucide-react';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -7,6 +7,7 @@ import logo from '../../assets/logo.svg';
 
 export default function OrderDetail() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { settings } = useSettings();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -37,6 +38,20 @@ export default function OrderDetail() {
         } catch (error) {
             console.error('Error updating status:', error);
             setStatusDropdownOpen(false);
+        }
+    };
+
+    const handleDeleteOrder = async () => {
+        if (window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+            try {
+                setLoading(true);
+                await api.delete(`/orders/${id}`);
+                navigate('/orders');
+            } catch (error) {
+                console.error('Error deleting order:', error);
+                setLoading(false);
+                alert('Failed to delete order. Please try again.');
+            }
         }
     };
 
@@ -119,6 +134,14 @@ export default function OrderDetail() {
                             </>
                         )}
                     </div>
+                    {order.PaymentTransactions && order.PaymentTransactions.length > 0 && order.PaymentTransactions[0].status === 'pending' && (
+                        <button
+                            onClick={handleDeleteOrder}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                            <span>Delete Order</span>
+                        </button>
+                    )}
                 </div>
             </div>
 

@@ -89,14 +89,20 @@ export const updateCustomer = async (req, res) => {
 export const deleteCustomer = async (req, res) => {
     try {
         const { id } = req.params;
-        const customer = await Customer.findByPk(id);
+        const customer = await Customer.findByPk(id, {
+            include: [{ model: Order, as: 'orders' }]
+        });
 
         if (!customer) {
             return res.status(404).json({ message: 'Customer not found' });
         }
 
-        // Ideally, we shouldn't delete customers with orders, but for now we might soft delete or just warn?
-        // Let's implement hard delete for now but maybe check for orders?
+        // Check if customer has any orders
+        if (customer.orders && customer.orders.length > 0) {
+            return res.status(400).json({
+                message: `Cannot delete customer. This customer has ${customer.orders.length} order(s). Please delete all associated orders first.`
+            });
+        }
 
         await customer.destroy();
 

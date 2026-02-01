@@ -86,7 +86,7 @@ const Order = sequelize.define('Order', {
 });
 
 Order.belongsTo(Customer, { foreignKey: 'customer_id' });
-Customer.hasMany(Order, { foreignKey: 'customer_id' });
+Customer.hasMany(Order, { foreignKey: 'customer_id', as: 'orders' });
 
 Order.belongsTo(Coupon, { foreignKey: 'coupon_id' });
 Order.belongsTo(ShippingMethod, { foreignKey: 'shipping_method_id' });

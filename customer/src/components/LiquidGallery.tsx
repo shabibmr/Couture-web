@@ -64,21 +64,37 @@ const ProductCard: React.FC<ProductCardProps> = ({ id, title, name, code, price,
 }
 
 const LiquidGallery: React.FC = () => {
-    const [products, setProducts] = useState<Product[]>([]);
+    const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+    const [newArrivals, setNewArrivals] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchData = async () => {
             try {
-                const response = await api.get(API_ENDPOINTS.PRODUCTS.LIST);
-                if (response.data) {
-                    // Handle paginated response: {total, pages, currentPage, data: [...]}
-                    const productsData = response.data.data || response.data;
-                    const normalizedProducts = (Array.isArray(productsData) ? productsData : []).map((p: any) => ({
+                // Fetch featured products
+                const featuredResp = await api.get(API_ENDPOINTS.PRODUCTS.LIST, {
+                    params: { is_featured: true, limit: 8 }
+                });
+
+                // Fetch new arrivals
+                const newArrivalsResp = await api.get(API_ENDPOINTS.PRODUCTS.LIST, {
+                    params: { is_new_arrival: true, limit: 4 }
+                });
+
+                if (featuredResp.data) {
+                    const data = featuredResp.data.data || featuredResp.data;
+                    setFeaturedProducts((Array.isArray(data) ? data : []).map((p: any) => ({
                         ...p,
                         image: p.image || p.featured_image || ''
-                    }));
-                    setProducts(normalizedProducts);
+                    })));
+                }
+
+                if (newArrivalsResp.data) {
+                    const data = newArrivalsResp.data.data || newArrivalsResp.data;
+                    setNewArrivals((Array.isArray(data) ? data : []).map((p: any) => ({
+                        ...p,
+                        image: p.image || p.featured_image || ''
+                    })));
                 }
             } catch (error) {
                 console.error("Failed to fetch products for gallery", error);
@@ -87,18 +103,11 @@ const LiquidGallery: React.FC = () => {
             }
         };
 
-        fetchProducts();
+        fetchData();
     }, []);
 
     if (loading) {
         return <div className="py-20 text-center text-stone-400 font-serif">Loading collection...</div>;
-    }
-
-    // Defensive check: ensure products is an array
-    const safeProducts = Array.isArray(products) ? products : [];
-
-    if (safeProducts.length === 0) {
-        return null;
     }
 
     return (
@@ -108,7 +117,7 @@ const LiquidGallery: React.FC = () => {
             <div className="max-w-[1400px] mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
 
-                    {/* Left Column - Headline & Main Grid */}
+                    {/* Left Column - Headline & Main Grid (Featured Products) */}
                     <div className="lg:col-span-8">
                         <motion.h2
                             initial={{ opacity: 0, y: 20 }}
@@ -121,16 +130,16 @@ const LiquidGallery: React.FC = () => {
                         </motion.h2>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-y-16 gap-x-4">
-                            {safeProducts.slice(0, 4).map((p, i) => (
+                            {featuredProducts.slice(0, 4).map((p, i) => (
                                 <ProductCard key={p.id || i} index={i} {...p} />
                             ))}
-                            {safeProducts.slice(4, 8).map((p, i) => (
+                            {featuredProducts.slice(4, 8).map((p, i) => (
                                 <ProductCard key={p.id || i + 4} index={i + 4} {...p} />
                             ))}
                         </div>
                     </div>
 
-                    {/* Right Column - "The New Collection" & Featured Image */}
+                    {/* Right Column - "New Arrivals" & Data Grid */}
                     <div className="lg:col-span-4 flex flex-col pt-12">
                         <motion.h2
                             initial={{ opacity: 0, x: 20 }}
@@ -138,14 +147,21 @@ const LiquidGallery: React.FC = () => {
                             transition={{ duration: 1, delay: 0.3 }}
                             className="text-5xl md:text-6xl font-serif text-ruvera-gold mb-12 leading-[0.9] text-right"
                         >
-                            <span className="block font-normal">THE NEW</span>
-                            <span className="block font-normal">COLLECTION</span>
+                            <span className="block font-normal uppercase">New</span>
+                            <span className="block font-normal uppercase">Arrivals</span>
                         </motion.h2>
 
                         <div className="grid grid-cols-2 gap-4 mb-8">
-                            {/* Standard rectangular shots for contrast as seen in design (right side) */}
-                            <div className="aspect-[2/5] bg-stone-200 hidden md:block" />
-                            <div className="aspect-[2/5] bg-stone-200 hidden md:block" />
+                            {newArrivals.slice(0, 4).map((p, i) => (
+                                <ProductCard key={p.id || i} index={i} {...p} />
+                            ))}
+                            {/* Fill empty slots with placeholders if needed, or just let it be */}
+                            {newArrivals.length === 0 && (
+                                <>
+                                    <div className="aspect-[2/5] bg-stone-200 hidden md:block" />
+                                    <div className="aspect-[2/5] bg-stone-200 hidden md:block" />
+                                </>
+                            )}
                         </div>
 
 

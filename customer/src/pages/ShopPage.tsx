@@ -22,27 +22,32 @@ const ShopPage: React.FC = () => {
     const { toggleWishlist, isInWishlist, formatPrice } = useShop();
     const { requireAuth } = useAuthGuard();
     const [products, setProducts] = React.useState<Product[]>([]);
-    const [categories, setCategories] = React.useState<string[]>([]);
+    const [categories, setCategories] = React.useState<{ name: string, slug: string }[]>([]);
     const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
+    const [isNewArrival, setIsNewArrival] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
 
-    // Pagination
-    const [currentPage, setCurrentPage] = React.useState(1);
+    const [hasMore, setHasMore] = React.useState(true);
+    const loaderRef = React.useRef<HTMLDivElement>(null);
     const itemsPerPage = 12;
+    const [currentPage, setCurrentPage] = React.useState(1); // Keep currentPage for internal tracking
 
-    // Fetch products based on category or search
-    const fetchProducts = async (category?: string | null, search?: string) => {
-        setLoading(true);
+    // Fetch products based on category, search, or new arrival status
+    const fetchProducts = async (category?: string | null, search?: string, newArrival?: boolean, page: number = 1, append: boolean = false) => {
+        if (!append) setLoading(true);
         try {
             let response;
+            const params: any = { page, limit: itemsPerPage };
+
             if (search) {
-                response = await api.get(API_ENDPOINTS.PRODUCTS.SEARCH, { params: { q: search } });
-            } else if (category) {
-                response = await api.get(API_ENDPOINTS.PRODUCTS.LIST, { params: { category } });
+                params.q = search;
+                response = await api.get(API_ENDPOINTS.PRODUCTS.SEARCH, { params });
             } else {
-                response = await api.get(API_ENDPOINTS.PRODUCTS.LIST);
+                if (category) params.category_slug = category;
+                if (newArrival) params.is_new_arrival = true;
+                response = await api.get(API_ENDPOINTS.PRODUCTS.LIST, { params });
             }
             // Handle paginated response: {total, pages, currentPage, data: [...]}
             const productsData = response.data.data || response.data;
@@ -50,7 +55,18 @@ const ShopPage: React.FC = () => {
                 ...p,
                 image: p.image || p.featured_image || ''
             }));
-            setProducts(normalizedProducts);
+
+            if (append) {
+                setProducts(prev => [...prev, ...normalizedProducts]);
+            } else {
+                setProducts(normalizedProducts);
+            }
+
+            // Determine if there are more products to load
+            const total = response.data.total || 0;
+            const pages = response.data.pages || 1;
+            setHasMore(page < pages);
+
         } catch (err: any) {
             logger.error("Fetch products error", { error: err });
             setError(err.response?.data?.message || 'Failed to connect to the server');
@@ -66,7 +82,7 @@ const ShopPage: React.FC = () => {
             // Fetch Categories
             try {
                 const catResponse = await api.get(API_ENDPOINTS.PRODUCTS.CATEGORIES);
-                setCategories(catResponse.data.map((c: any) => c.name));
+                setCategories(catResponse.data.map((c: any) => ({ name: c.name, slug: c.slug })));
             } catch (err) {
                 logger.error("Fetch categories error", { error: err });
             }
@@ -76,18 +92,50 @@ const ShopPage: React.FC = () => {
         loadInitialData();
     }, []);
 
+    // Intersection Observer for Infinite Scroll
+    React.useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !loading && hasMore) {
+                setCurrentPage(prev => {
+                    const nextPage = prev + 1;
+                    fetchProducts(selectedCategory, searchQuery, isNewArrival, nextPage, true);
+                    return nextPage;
+                });
+            }
+        }, { threshold: 0.1 });
+
+        if (loaderRef.current) {
+            observer.observe(loaderRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [loading, hasMore, selectedCategory, searchQuery, isNewArrival]);
+
     const handleCategoryClick = (category: string | null) => {
         setSelectedCategory(category);
+        setIsNewArrival(false);
         setSearchQuery('');
         setCurrentPage(1); // Reset to first page
-        fetchProducts(category, '');
+        setHasMore(true);
+        fetchProducts(category, '', false, 1, false);
+    };
+
+    const handleNewArrivalsClick = () => {
+        setIsNewArrival(true);
+        setSelectedCategory(null);
+        setSearchQuery('');
+        setCurrentPage(1);
+        setHasMore(true);
+        fetchProducts(null, '', true, 1, false);
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setSelectedCategory(null);
+        setIsNewArrival(false);
         setCurrentPage(1); // Reset to first page
-        fetchProducts(null, searchQuery);
+        setHasMore(true);
+        fetchProducts(null, searchQuery, false, 1, false);
     };
 
     if (error) {
@@ -100,13 +148,14 @@ const ShopPage: React.FC = () => {
             </div>
         );
     }
+    const selectedCategoryName = categories.find(c => c.slug === selectedCategory)?.name;
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
             <SEO
-                title={selectedCategory ? `${selectedCategory} Collection` : 'Shop All'}
+                title={isNewArrival ? 'New Arrivals' : (selectedCategoryName ? `${selectedCategoryName} Collection` : 'Shop All')}
                 description="Explore our exclusive collection of high-fashion pieces. Find your perfect style at Ruvera Couture."
-                keywords={`shop, fashion, ${selectedCategory || 'couture'}, luxury, clothing`}
+                keywords={`shop, fashion, ${selectedCategoryName || 'couture'}, luxury, clothing`}
             />
             <div className="max-w-[1400px] mx-auto">
 
@@ -129,17 +178,23 @@ const ShopPage: React.FC = () => {
                         <div className="flex flex-wrap justify-center gap-6">
                             <button
                                 onClick={() => handleCategoryClick(null)}
-                                className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${!selectedCategory ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
+                                className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${!selectedCategory && !isNewArrival ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
                             >
                                 All Pieces
                             </button>
-                            {categories.map(cat => (
+                            <button
+                                onClick={handleNewArrivalsClick}
+                                className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${isNewArrival ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
+                            >
+                                New Arrivals
+                            </button>
+                            {categories.map((category) => (
                                 <button
-                                    key={cat}
-                                    onClick={() => handleCategoryClick(cat)}
-                                    className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${selectedCategory === cat ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
+                                    key={category.slug}
+                                    onClick={() => handleCategoryClick(category.slug)}
+                                    className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${selectedCategory === category.slug ? 'text-ruvera-gold' : 'text-stone-400 hover:text-stone-900'}`}
                                 >
-                                    {cat}
+                                    {category.name}
                                 </button>
                             ))}
                         </div>
@@ -175,7 +230,6 @@ const ShopPage: React.FC = () => {
                         {/* Products Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-20 gap-x-12">
                             {(Array.isArray(products) ? products : [])
-                                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                 .map((product, index) => {
                                     const shape = organicShapes[index % organicShapes.length];
                                     const isWishlisted = isInWishlist(product.id);
@@ -188,7 +242,7 @@ const ShopPage: React.FC = () => {
 
                                     return (
                                         <motion.div
-                                            key={product.id}
+                                            key={`${product.id}-${index}`}
                                             initial={{ opacity: 0, y: 30 }}
                                             whileInView={{ opacity: 1, y: 0 }}
                                             viewport={{ once: true }}
@@ -236,39 +290,19 @@ const ShopPage: React.FC = () => {
                                 })}
                         </div>
 
-                        {/* Pagination */}
-                        {Array.isArray(products) && products.length > itemsPerPage && (
-                            <div className="mt-20 flex items-center justify-center gap-2">
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
-                                    className="p-2 border border-stone-200 rounded hover:border-ruvera-gold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <ChevronLeft size={20} />
-                                </button>
-
-                                {[...Array(Math.ceil(products.length / itemsPerPage))].map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setCurrentPage(i + 1)}
-                                        className={`w-10 h-10 rounded text-sm transition-all ${currentPage === i + 1
-                                            ? 'bg-ruvera-gold text-white'
-                                            : 'border border-stone-200 hover:border-ruvera-gold'
-                                            }`}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                ))}
-
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(products.length / itemsPerPage), prev + 1))}
-                                    disabled={currentPage === Math.ceil(products.length / itemsPerPage)}
-                                    className="p-2 border border-stone-200 rounded hover:border-ruvera-gold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <ChevronRight size={20} />
-                                </button>
-                            </div>
-                        )}
+                        {/* Infinite Scroll Loader Trigger */}
+                        <div ref={loaderRef} className="h-20 flex items-center justify-center mt-20">
+                            {loading && products.length > 0 && (
+                                <div className="text-ruvera-gold font-serif italic animate-pulse">
+                                    Curating more pieces...
+                                </div>
+                            )}
+                            {!hasMore && products.length > 0 && (
+                                <div className="text-stone-400 text-[10px] uppercase tracking-widest border-t border-stone-200 pt-8 w-full text-center">
+                                    You have explored the entire collection
+                                </div>
+                            )}
+                        </div>
                     </>
                 )}
             </div>
