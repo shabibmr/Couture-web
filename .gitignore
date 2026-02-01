@@ -43,3 +43,6 @@ customer/.env.production
 create_gold_icon.py
 couture.db
 CLAUDE.md
+expand_csv.py
+filtered_plist1.csv
+plist1_expanded.csv
