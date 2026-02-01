@@ -82,7 +82,9 @@ const Order = sequelize.define('Order', {
     },
 }, {
     tableName: 'orders',
-    timestamps: false,
+    timestamps: true,
+    createdAt: 'order_date',
+    updatedAt: false
 });
 
 Order.belongsTo(Customer, { foreignKey: 'customer_id' });
