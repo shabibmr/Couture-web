@@ -68,6 +68,13 @@ export const getAllPayments = async (req, res) => {
 
 export const createRazorpayOrder = async (req, res) => {
     console.log("[PaymentController] createRazorpayOrder started for order_id:", req.body.order_id);
+
+    // Define mode and keyId at function scope so they're available in catch block
+    const mode = process.env.RAZORPAY_MODE || 'test';
+    const keyId = mode === 'live'
+        ? process.env.RAZORPAY_LIVE_KEY_ID
+        : process.env.RAZORPAY_TEST_KEY_ID;
+
     try {
         const { order_id } = req.body;
         const customer_id = req.user.id;
@@ -90,7 +97,17 @@ export const createRazorpayOrder = async (req, res) => {
             receipt: order.order_number,
         };
 
-        if (!razorpayInstance) await initRazorpay();
+        if (!razorpayInstance) {
+            await initRazorpay();
+        }
+
+        if (!razorpayInstance) {
+            console.error('[PaymentController] Razorpay instance not initialized. Check credentials.');
+            return res.status(500).json({
+                message: 'Payment gateway configuration error',
+                error: `Razorpay credentials missing for ${mode} mode`
+            });
+        }
 
         console.log("[PaymentController] Calling Razorpay API for order receipt:", order.order_number);
         const razorpayOrder = await razorpayInstance.orders.create(options);
@@ -113,11 +130,6 @@ export const createRazorpayOrder = async (req, res) => {
             payment_date: new Date()
         });
 
-        const mode = process.env.RAZORPAY_MODE || 'test';
-        const keyId = mode === 'live'
-            ? process.env.RAZORPAY_LIVE_KEY_ID
-            : process.env.RAZORPAY_TEST_KEY_ID;
-
         res.json({
             id: razorpayOrder.id,
             currency: razorpayOrder.currency,
@@ -128,7 +140,10 @@ export const createRazorpayOrder = async (req, res) => {
 
     } catch (error) {
         console.error('Error creating razorpay order:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({
+            message: `Payment gateway error in ${mode} mode`,
+            error: error.message
+        });
     }
 };
 

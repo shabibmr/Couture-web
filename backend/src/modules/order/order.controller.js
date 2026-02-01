@@ -244,7 +244,7 @@ export const getOrders = async (req, res) => {
             where,
             limit: parseInt(limit),
             offset: parseInt(offset),
-            order: [['order_date', 'DESC']],
+            order: [[sequelize.literal('`Order`.`order_date`'), 'DESC']],
             include: [
                 {
                     model: OrderItem,
