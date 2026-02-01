@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, MapPin, Package, Calendar, Clock, Star } from 'lucide-react';
-import { getCustomerById } from '../../data/mockCustomers';
+import api from '../../services/api';
 
 import { formatCurrency } from '../../utils/currency';
 
@@ -13,12 +13,44 @@ export default function CustomerDetail() {
     useEffect(() => {
         const loadCustomer = async () => {
             setLoading(true);
-            const data = await getCustomerById(id);
-            setCustomer(data);
-            setLoading(false);
+            try {
+                const response = await api.get(`/customers/${id}`);
+                const data = response.data;
+
+                // Map API data to component state
+                const mappedCustomer = {
+                    ...data,
+                    name: `${data.first_name} ${data.last_name}`,
+                    avatar: data.avatar_url,
+                    joinedDate: data.created_at,
+                    location: data.orders && data.orders.length > 0
+                        ? (data.orders[0].billing_address?.city || data.orders[0].billing_address?.state || 'N/A')
+                        : 'N/A',
+                    // Calculate totals from orders if available, otherwise default to 0
+                    totalSpent: data.orders ? data.orders.reduce((sum, order) => sum + parseFloat(order.total_amount), 0) : 0,
+                    ordersCount: data.orders ? data.orders.length : 0,
+                    recentOrders: data.orders ? data.orders.map(order => ({
+                        id: order.id, // Keep full ID for key
+                        displayId: order.order_number || order.id.substring(0, 8),
+                        date: order.order_date || order.created_at,
+                        total: parseFloat(order.total_amount),
+                        status: order.status || 'Pending',
+                        items: 0 // We might not have items count directly on order list without inclusion
+                    })) : []
+                };
+
+                setCustomer(mappedCustomer);
+            } catch (error) {
+                console.error('Error loading customer:', error);
+                setCustomer(null);
+            } finally {
+                setLoading(false);
+            }
         };
 
-        loadCustomer();
+        if (id) {
+            loadCustomer();
+        }
     }, [id]);
 
     if (loading) return <div className="p-12 text-center text-stone-400">Loading profile...</div>;
@@ -64,7 +96,7 @@ export default function CustomerDetail() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <Phone size={16} className="text-ruvera-gold" />
-                                <span>{customer.phone}</span>
+                                <span>{customer.phone || 'N/A'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <MapPin size={16} className="text-ruvera-gold" />
@@ -102,20 +134,20 @@ export default function CustomerDetail() {
                                         <Package size={24} />
                                     </div>
                                     <div>
-                                        <p className="font-medium text-midnight font-mono mb-1">#{order.id.split('_')[1]}</p>
+                                        <p className="font-medium text-midnight font-mono mb-1">#{order.displayId}</p>
                                         <div className="flex items-center gap-3 text-xs text-stone-400">
                                             <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(order.date).toLocaleDateString()}</span>
-                                            <span>•</span>
-                                            <span>{order.items} items</span>
+                                            {/* <span>•</span> */}
+                                            {/* <span>{order.items} items</span> */}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-8">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${order.status === 'Delivered' ? 'bg-emerald-100 text-emerald-700' :
-                                        order.status === 'Processing' ? 'bg-blue-100 text-blue-700' :
-                                            order.status === 'Shipped' ? 'bg-amber-100 text-amber-700' :
-                                                'bg-stone-100 text-stone-500'
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${order.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' :
+                                            order.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                                                order.status === 'shipped' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-stone-100 text-stone-500'
                                         }`}>
                                         {order.status}
                                     </span>
