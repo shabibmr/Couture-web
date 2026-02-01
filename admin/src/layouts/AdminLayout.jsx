@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, Tag, Archive, PercentCircle, DollarSign, Image, Menu, X } from 'lucide-react';
 import logo from '../assets/ruvera_logo.png';
 
@@ -26,6 +26,19 @@ const SidebarItem = ({ to, icon, label, onClick }) => {
 
 export default function AdminLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+        }
+    }, [navigate]);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const closeSidebar = () => setIsSidebarOpen(false);
@@ -73,7 +86,10 @@ export default function AdminLayout() {
                 </nav>
 
                 <div className="p-4 border-t border-white/10">
-                    <button className="flex items-center gap-3 px-4 py-3 w-full text-stone-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-3 w-full text-stone-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
+                    >
                         <LogOut size={20} />
                         <span className="font-medium">Sign Out</span>
                     </button>

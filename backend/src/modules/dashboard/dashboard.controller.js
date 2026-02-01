@@ -25,7 +25,7 @@ export const getDashboardStats = async (req, res) => {
 
         const newOrdersCount = await Order.count({
             where: {
-                created_at: {
+                order_date: {
                     [Op.gte]: thirtyDaysAgo
                 }
             }

@@ -33,13 +33,63 @@ const CheckoutPage: React.FC = () => {
     const { cart, addOrder, clearCart, formatPrice, currency: shopCurrency } = useShop();
     const { user, loading: authLoading } = useAuth();
 
-    // Define orderData BEFORE useEffect to prevent reference error
-    const orderData = (location.state as CheckoutState) || { subtotal: 0, tax: 0, discount: 0, shippingFee: 0, total: 0 };
-    const { total } = orderData;
+    // State for order summary, initialized from location state or defaults
+    const [orderSummary, setOrderSummary] = useState<CheckoutState>(() => {
+        const state = location.state as CheckoutState;
+        return state || { subtotal: 0, tax: 0, discount: 0, shippingFee: 0, total: 0 };
+    });
+
+    // Helper to parse price string or number to number for calculation
+    const parsePrice = (price: any): number => {
+        if (typeof price === 'number') return price;
+        if (typeof price === 'string') {
+            if (!isNaN(parseFloat(price)) && /^\d+(\.\d+)?$/.test(price.trim())) {
+                return parseFloat(price);
+            }
+            return parseInt(price.replace(/[^0-9]/g, ''), 10) || 0;
+        }
+        return 0;
+    };
+
+    // Recalculate totals if missing from state (e.g. page refresh or login redirect)
+    React.useEffect(() => {
+        const recalculateTotals = async () => {
+            // If total is 0 but we have items, we likely lost state
+            if (orderSummary.total === 0 && cart.length > 0) {
+                logger.info("[CheckoutPage] Recalculating totals due to missing state");
+
+                const calculatedSubtotal = cart.reduce((acc: number, item: any) => {
+                    const itemPrice = parsePrice(item.price);
+                    const itemQuantity = item.quantity || 1;
+                    return acc + (itemPrice * itemQuantity);
+                }, 0);
+
+                let calculatedShipping = 0;
+                try {
+                    const response = await api.get(API_ENDPOINTS.ORDERS.CALCULATE_SHIPPING(calculatedSubtotal));
+                    calculatedShipping = response.data.shipping_amount;
+                } catch (e) {
+                    logger.error("Error fetching shipping in checkout", { error: e });
+                }
+
+                setOrderSummary(prev => ({
+                    ...prev,
+                    subtotal: calculatedSubtotal,
+                    shippingFee: calculatedShipping,
+                    // Note: We cannot recover discount code without re-entering it, so discount is 0
+                    total: calculatedSubtotal + calculatedShipping
+                }));
+            }
+        };
+
+        recalculateTotals();
+    }, [cart.length, orderSummary.total]); // Only run when cart loads or total is checked
+
+    const { total } = orderSummary;
 
     // Protect Route - use user state instead of localStorage
     React.useEffect(() => {
-        logger.info('Page Mounted: CheckoutPage', { cartCount: cart.length, total: orderData.total });
+        logger.info('Page Mounted: CheckoutPage', { cartCount: cart.length, total: orderSummary.total });
         logger.debug("[CheckoutPage] Auth state check", { userId: user?.uid, authLoading });
         if (!authLoading && !user?.backendToken) {
             logger.warn("[CheckoutPage] No backend token found, redirecting to login");
@@ -67,7 +117,7 @@ const CheckoutPage: React.FC = () => {
 
     const handlePayment = async (e: FormEvent) => {
         e.preventDefault();
-        logger.info("[CheckoutPage] Payment initiated", { total: orderData.total });
+        logger.info("[CheckoutPage] Payment initiated", { total: orderSummary.total });
         setLoading(true);
 
         try {
@@ -83,10 +133,10 @@ const CheckoutPage: React.FC = () => {
                     price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price).replace(/[^0-9.]/g, '')),
                     variant_id: (item as any).variant_id || null
                 })),
-                subtotal: orderData.subtotal,
-                tax: orderData.tax,
-                discount: orderData.discount,
-                total_amount: orderData.total,
+                subtotal: orderSummary.subtotal,
+                tax: orderSummary.tax,
+                discount: orderSummary.discount,
+                total_amount: orderSummary.total,
                 payment_method: 'razorpay',
                 currency: shopCurrency.code,
                 // Include coupon code if available from location state
@@ -280,25 +330,25 @@ const CheckoutPage: React.FC = () => {
                         <div className="border-t border-stone-200 pt-4 space-y-2 text-sm text-stone-600">
                             <div className="flex justify-between">
                                 <span>Subtotal</span>
-                                <span>{formatPrice(orderData.subtotal)}</span>
+                                <span>{formatPrice(orderSummary.subtotal)}</span>
                             </div>
 
                             <div className="flex justify-between text-stone-600">
                                 <span>Shipping</span>
                                 <span>
-                                    {orderData.shippingFee === 0 ? (
+                                    {orderSummary.shippingFee === 0 ? (
                                         <span className="text-ruvera-gold font-medium">Free Shipping</span>
                                     ) : (
-                                        formatPrice(orderData.shippingFee)
+                                        formatPrice(orderSummary.shippingFee)
                                     )}
                                 </span>
                             </div>
 
-                            {orderData.discount > 0 && (
+                            {orderSummary.discount > 0 && (
 
                                 <div className="flex justify-between text-ruvera-gold">
                                     <span>Discount</span>
-                                    <span>-{formatPrice(orderData.discount)}</span>
+                                    <span>-{formatPrice(orderSummary.discount)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between font-serif text-lg text-midnight border-t border-stone-200 pt-4 mt-2">
