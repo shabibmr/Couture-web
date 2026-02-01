@@ -1,12 +1,15 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Lock, ArrowLeft, CreditCard } from 'lucide-react';
+import SEO from '../components/SEO';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { Order as OrderType } from '../types';
 import api from '../services/api.service';
 import { API_ENDPOINTS } from '../config/api.config';
 import logger from '../utils/logger';
+
+// ... (keep declarations and interfaces)
 
 // Add Window interface for Razorpay
 declare global {
@@ -24,6 +27,7 @@ interface CheckoutState {
 }
 
 const CheckoutPage: React.FC = () => {
+    // ... (keep all hooks and logic)
     const navigate = useNavigate();
     const location = useLocation();
     const { cart, addOrder, clearCart, formatPrice, currency: shopCurrency } = useShop();
@@ -185,6 +189,11 @@ const CheckoutPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen py-12 px-6">
+            <SEO
+                title="Secure Checkout"
+                description="Complete your purchase securely at Ruvera Couture."
+                keywords="checkout, payment, secure, fashion"
+            />
             <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div>
                     <button onClick={() => navigate(-1)} className="flex items-center text-stone-500 mb-8 hover:text-midnight">

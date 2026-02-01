@@ -89,7 +89,8 @@ api.interceptors.response.use(
                 success: true,
             });
 
-            window.location.href = '/login';
+            // Disabled redirect to login for development
+            // window.location.href = '/login';
         }
         return Promise.reject(error);
     }

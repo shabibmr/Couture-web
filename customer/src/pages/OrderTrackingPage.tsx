@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Check, Package, Truck, Home, ArrowLeft, LucideIcon } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import SEO from '../components/SEO';
 import { Order } from '../types';
 import logger from '../utils/logger';
 
@@ -13,17 +14,72 @@ interface TrackingStep {
 
 const OrderTrackingPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { orders, formatPrice } = useShop();
     const [order, setOrder] = useState<Order | null | undefined>(null);
+    const [searchId, setSearchId] = useState('');
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchId.trim()) {
+            navigate(`/orders/${searchId.trim()}`);
+            setSearchId('');
+        }
+    };
 
     useEffect(() => {
+        if (!id) return;
         logger.info('Page Mounted: OrderTrackingPage', { orderId: id });
         const foundOrder = orders.find(o => o.id === id);
         setOrder(foundOrder);
     }, [id, orders]);
 
+    if (!id) {
+        return (
+            <div className="bg-beige-bg min-h-screen pt-40 px-6">
+                <SEO
+                    title="Track Order"
+                    description="Track the status of your Ruvera Couture order easily with your order ID."
+                    keywords="track order, order status, shipping status"
+                />
+                <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-stone-100 text-center">
+                    <h1 className="font-serif text-3xl text-midnight mb-4">Track Your Order</h1>
+                    <p className="text-stone-500 mb-8">Enter your order ID to see the current status.</p>
+                    <form onSubmit={handleSearch} className="flex flex-col gap-4">
+                        <input
+                            type="text"
+                            value={searchId}
+                            onChange={(e) => setSearchId(e.target.value)}
+                            placeholder="Order ID (e.g. #1234)"
+                            className="bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold"
+                            required
+                        />
+                        <button
+                            type="submit"
+                            className="bg-ruvera-gold text-white py-3 rounded font-medium hover:bg-stone-800 transition-colors"
+                        >
+                            Track Order
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
     if (order === null) return <div className="pt-40 text-center">Loading Order...</div>;
-    if (order === undefined) return <div className="pt-40 text-center">Order not found</div>;
+    if (order === undefined) {
+        return (
+            <div className="bg-beige-bg min-h-screen pt-40 px-6 text-center">
+                <div className="max-w-md mx-auto">
+                    <h2 className="font-serif text-2xl text-midnight mb-4">Order Not Found</h2>
+                    <p className="text-stone-500 mb-6">We couldn't find order #{id}.</p>
+                    <Link to="/track-order" className="inline-block bg-ruvera-gold text-white px-6 py-2 rounded hover:bg-stone-800 transition-colors">
+                        Try Another ID
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     // Timeline Steps
     const steps: TrackingStep[] = [
@@ -44,6 +100,11 @@ const OrderTrackingPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title={`Order ${order.id}`}
+                description={`Track status for order ${order.id}. Current status: ${order.status}.`}
+                keywords={`order tracking, ${order.id}, shipment status`}
+            />
             <div className="max-w-3xl mx-auto">
                 <Link to="/orders" className="flex items-center text-stone-500 mb-8 hover:text-midnight transition-colors">
                     <ArrowLeft size={16} className="mr-2" /> Back to Orders

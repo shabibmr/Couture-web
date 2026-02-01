@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Award, Heart, Users, Sparkles } from 'lucide-react';
+import SEO from '../components/SEO';
 import logger from '../utils/logger';
 
 const AboutPage: React.FC = () => {
@@ -33,6 +34,11 @@ const AboutPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title="About Us"
+                description="Learn about the story, mission, and values of Ruvera Couture. Redefining luxury through craftsmanship and elegance."
+                keywords="about ruvera, our story, mission, values, luxury fashion"
+            />
             <div className="max-w-6xl mx-auto">
                 {/* Hero Section */}
                 <motion.div
@@ -56,7 +62,7 @@ const AboutPage: React.FC = () => {
                 >
                     <div className="max-w-4xl mx-auto space-y-6 text-stone-700 leading-relaxed">
                         <p className="text-lg font-light">
-                            Founded in 2020, <span className="font-serif text-ruvera-gold">Ruvéra Couture</span> was born from a vision to create
+                            Founded in 2026, <span className="font-serif text-ruvera-gold">Ruvéra Couture</span> was born from a vision to create
                             fashion that speaks to the modern connoisseur—someone who appreciates the marriage of
                             avant-garde design and traditional artistry.
                         </p>

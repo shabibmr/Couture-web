@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import logRocketService from './utils/logrocketService';
+import firebaseAnalytics from './utils/firebaseAnalytics';
 import { ShopProvider } from './context/ShopContext';
 import Layout from './components/Layout';
 import SplashScreen from './components/SplashScreen';
@@ -38,6 +39,8 @@ const NavigationTracker: React.FC = () => {
         page: to,
       });
 
+      firebaseAnalytics.logPageView(to);
+
       prevLocationRef.current = to;
     }
   }, [location]);
@@ -67,6 +70,7 @@ const App: React.FC = () => {
                 <Route path="wishlist" element={<WishlistPage />} />
                 <Route path="orders" element={<OrderHistoryPage />} />
                 <Route path="orders/:id" element={<OrderTrackingPage />} />
+                <Route path="track-order" element={<OrderTrackingPage />} />
                 <Route path="login" element={<LoginPage />} />
                 <Route path="register" element={<RegisterPage />} />
                 <Route path="profile" element={<UserProfilePage />} />

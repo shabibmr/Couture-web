@@ -61,7 +61,10 @@ export const syncFirebaseUserSchema = Joi.object({
         .messages({
             'string.empty': 'Firebase ID token is required',
             'any.required': 'Firebase ID token is required'
-        })
+        }),
+    first_name: Joi.string().max(50).optional(),
+    last_name: Joi.string().max(50).optional(),
+    phone: Joi.string().max(20).optional()
 });
 
 export const requestPasswordResetSchema = Joi.object({

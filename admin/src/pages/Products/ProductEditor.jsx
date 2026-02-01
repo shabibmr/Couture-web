@@ -22,7 +22,8 @@ export default function ProductEditor() {
         additionalImages: ['', '', ''], // Array for 3 additional images
         is_active: true,
         is_new_arrival: false,
-        is_featured: false
+        is_featured: false,
+        sort_order: 0
     });
 
     const [categories, setCategories] = useState([]);
@@ -65,7 +66,8 @@ export default function ProductEditor() {
                                 : ['', '', ''],
                             is_active: product.is_active !== undefined ? product.is_active : true,
                             is_new_arrival: product.is_new_arrival || false,
-                            is_featured: product.is_featured || false
+                            is_featured: product.is_featured || false,
+                            sort_order: product.sort_order || 0
                         });
 
                         // Fill remaining slots if less than 3 images
@@ -166,7 +168,10 @@ export default function ProductEditor() {
                 category_id: formData.category,
                 is_active: formData.is_active,
                 is_new_arrival: formData.is_new_arrival,
-                is_featured: formData.is_featured
+                is_active: formData.is_active,
+                is_new_arrival: formData.is_new_arrival,
+                is_featured: formData.is_featured,
+                sort_order: parseInt(formData.sort_order) || 0
             };
 
             if (isEditing) {
@@ -396,6 +401,19 @@ export default function ProductEditor() {
                                     </option>
                                 ))}
                             </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Sort Order</label>
+                            <input
+                                type="number"
+                                name="sort_order"
+                                value={formData.sort_order}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 focus:border-ruvera-gold outline-none"
+                                placeholder="0"
+                            />
+                            <p className="text-xs text-stone-400 mt-1">Higher numbers appear first.</p>
                         </div>
 
                         <div>

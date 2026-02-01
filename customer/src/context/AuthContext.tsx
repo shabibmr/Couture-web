@@ -6,7 +6,10 @@ import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    updateProfile
+    updateProfile,
+    signInWithPhoneNumber,
+    RecaptchaVerifier,
+    ConfirmationResult
 } from 'firebase/auth';
 import { API_ENDPOINTS, API_BASE_URL } from '../config/api.config';
 import { AuthContextType, User as AppUser } from '../types';
@@ -30,6 +33,8 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+    const pendingRegistrationProfile = React.useRef<{ firstName: string; lastName: string; phone?: string } | null>(null);
 
     const signIn = async (email: string, password: string) => {
         console.log("[AuthContext] signIn called for email:", email);
@@ -55,8 +60,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
-    const signUp = async (email: string, password: string, displayName: string) => {
-        console.log("[AuthContext] signUp called for email:", email, "displayName:", displayName);
+    const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
+        const displayName = `${firstName} ${lastName}`.trim();
+        console.log("[AuthContext] signUp called for email:", email, "displayName:", displayName, "phone:", phone);
+
+        // Store profile details temporarily for the listener to use in sync call
+        pendingRegistrationProfile.current = { firstName, lastName, phone };
+
         logRocketService.logStateChange({
             context: 'AuthContext',
             action: 'signUp_attempt',
@@ -77,10 +87,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (error) {
             console.error("[AuthContext] Error signing up with email/password", error);
             logRocketService.logError('Sign up failed', error, { email, displayName });
+            // Clear pending profile on error
+            pendingRegistrationProfile.current = null;
             throw error;
         }
     };
 
+    // ... (keep signInWithGoogle, signInWithPhone, verifyOtp, logout as is)
     const signInWithGoogle = async () => {
         console.log("[AuthContext] signInWithGoogle called");
         logRocketService.logStateChange({
@@ -100,6 +113,107 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (error) {
             console.error("[AuthContext] Error signing in with Google", error);
             logRocketService.logError('Google sign in failed', error);
+        }
+    };
+
+    const signInWithPhone = async (phoneNumber: string, appVerifier: RecaptchaVerifier) => {
+        console.log("[AuthContext] signInWithPhone called for number:", phoneNumber);
+        logRocketService.logStateChange({
+            context: 'AuthContext',
+            action: 'phone_signin_attempt',
+            newValue: { phoneNumber },
+        });
+
+        try {
+            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            setConfirmationResult(result);
+            console.log("[AuthContext] OTP sent successfully");
+
+            logRocketService.logStateChange({
+                context: 'AuthContext',
+                action: 'otp_sent_success',
+                newValue: { phoneNumber },
+            });
+        } catch (error) {
+            console.error("[AuthContext] Error sending OTP", error);
+            logRocketService.logError('Phone sign in failed', error, { phoneNumber });
+            throw error;
+        }
+    };
+
+    const verifyOtp = async (otp: string) => {
+        console.log("[AuthContext] verifyOtp called");
+        logRocketService.logStateChange({
+            context: 'AuthContext',
+            action: 'otp_verify_attempt',
+        });
+
+        if (!confirmationResult) {
+            const error = new Error('No confirmation result available. Please request OTP first.');
+            logRocketService.logError('OTP verification failed', error);
+            throw error;
+        }
+
+        try {
+            await confirmationResult.confirm(otp);
+            console.log("[AuthContext] OTP verified successfully");
+
+            logRocketService.logStateChange({
+                context: 'AuthContext',
+                action: 'otp_verify_success',
+            });
+
+            setConfirmationResult(null);
+        } catch (error) {
+            console.error("[AuthContext] Error verifying OTP", error);
+            logRocketService.logError('OTP verification failed', error);
+            throw error;
+        }
+    };
+
+    const completePhoneProfile = async (firstName: string, lastName: string, email?: string) => {
+        console.log("[AuthContext] completePhoneProfile called", { firstName, lastName, email });
+        logRocketService.logStateChange({
+            context: 'AuthContext',
+            action: 'complete_phone_profile_attempt',
+            newValue: { firstName, lastName, hasEmail: !!email },
+        });
+
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            const error = new Error('No authenticated user');
+            logRocketService.logError('Profile completion failed', error);
+            throw error;
+        }
+
+        try {
+            // Update Firebase profile with display name
+            const displayName = `${firstName} ${lastName}`.trim();
+            await updateProfile(currentUser, { displayName });
+            console.log("[AuthContext] Firebase profile updated with displayName:", displayName);
+
+            // Store profile data for backend sync
+            pendingRegistrationProfile.current = {
+                firstName,
+                lastName,
+                phone: currentUser.phoneNumber || undefined,
+                email: email || undefined
+            };
+            console.log("[AuthContext] Stored pending profile for backend sync");
+
+            logRocketService.logStateChange({
+                context: 'AuthContext',
+                action: 'complete_phone_profile_success',
+            });
+
+            // Force a re-sync by reloading the user
+            // This will trigger onAuthStateChanged with updated profile
+            await currentUser.reload();
+            console.log("[AuthContext] User reloaded, triggering sync");
+        } catch (error) {
+            console.error("[AuthContext] Error completing phone profile", error);
+            logRocketService.logError('Profile completion failed', error);
+            throw error;
         }
     };
 
@@ -153,12 +267,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         },
                     });
 
-                    // Sync with Backend
+                    // Prepare sync payload
                     const idToken = await firebaseUser.getIdToken();
+                    const syncPayload: any = { idToken };
+
+                    // Add registration profile details if available
+                    if (pendingRegistrationProfile.current) {
+                        syncPayload.first_name = pendingRegistrationProfile.current.firstName;
+                        syncPayload.last_name = pendingRegistrationProfile.current.lastName;
+                        if (pendingRegistrationProfile.current.phone) {
+                            syncPayload.phone = pendingRegistrationProfile.current.phone;
+                        }
+                        // Include email if provided (for phone login profile completion)
+                        if (pendingRegistrationProfile.current.email) {
+                            syncPayload.email = pendingRegistrationProfile.current.email;
+                        }
+                        console.log("[AuthContext] Including pending registration profile in sync:", pendingRegistrationProfile.current);
+                        // Clear pending profile after use
+                        pendingRegistrationProfile.current = null;
+                    }
+
+                    // Sync with Backend
                     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.SYNC}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ idToken })
+                        body: JSON.stringify(syncPayload)
                     });
 
                     const data = await response.json();
@@ -254,6 +387,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         signIn,
         signUp,
         signInWithGoogle,
+        signInWithPhone,
+        verifyOtp,
+        completePhoneProfile,
         logout,
         loading
     };

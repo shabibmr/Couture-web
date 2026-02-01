@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, X } from 'lucide-react';
+import SEO from '../components/SEO';
 import { useShop } from '../context/ShopContext';
 import logger from '../utils/logger';
 
@@ -14,6 +15,11 @@ const WishlistPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title="Wishlist"
+                description="Save your favorite Ruvera Couture items for later. Create your personalized collection of luxury fashion."
+                keywords="wishlist, saved items, luxury fashion, favorites"
+            />
             <div className="max-w-6xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -49,11 +55,13 @@ const WishlistPage: React.FC = () => {
                                     className="group relative"
                                 >
                                     <div className="relative aspect-[3/4] mb-4 bg-stone-200 overflow-hidden">
-                                        <img
-                                            src={product.image}
-                                            alt={product.name || product.title}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                        />
+                                        <Link to={`/product/${product.slug || product.id}`} className="block w-full h-full">
+                                            <img
+                                                src={product.image}
+                                                alt={product.name || product.title}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                            />
+                                        </Link>
 
                                         <button
                                             onClick={() => removeFromWishlist(product.id)}

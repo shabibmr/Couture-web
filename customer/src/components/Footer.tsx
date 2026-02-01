@@ -58,7 +58,8 @@ const Footer: React.FC = () => {
                 <div>
                     <h3 className="text-stone-900 font-medium uppercase tracking-widest text-xs mb-6">Service</h3>
                     <ul className="space-y-4 font-light text-stone-600">
-                        <li><Link to="/track-order" className="hover:text-ruvera-gold transition-colors">Track Order</Link></li>
+
+                        <li><Link to="/orders" className="hover:text-ruvera-gold transition-colors">My Orders</Link></li>
                         <li><Link to="/shipping" className="hover:text-ruvera-gold transition-colors">Shipping & Returns</Link></li>
                         <li><Link to="/about" className="hover:text-ruvera-gold transition-colors">About Us</Link></li>
                         <li><Link to="/faq" className="hover:text-ruvera-gold transition-colors">FAQ</Link></li>

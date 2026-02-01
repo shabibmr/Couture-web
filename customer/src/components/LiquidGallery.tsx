@@ -148,10 +148,7 @@ const LiquidGallery: React.FC = () => {
                             <div className="aspect-[2/5] bg-stone-200 hidden md:block" />
                         </div>
 
-                        <div className="text-right mt-auto hidden md:block">
-                            <h3 className="text-lg font-serif italic text-stone-800">Fiendèra</h3>
-                            <p className="text-xs tracking-widest text-stone-500 uppercase mt-1">Price: ₹1,25,000</p>
-                        </div>
+
                     </div>
 
                 </div>

@@ -62,6 +62,10 @@ const Product = sequelize.define('Product', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
+    sort_order: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+    },
     view_count: {
         type: DataTypes.INTEGER,
         defaultValue: 0,

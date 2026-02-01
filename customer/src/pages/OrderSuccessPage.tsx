@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle, ShoppingBag } from 'lucide-react';
+import SEO from '../components/SEO';
 import logger from '../utils/logger';
 
 interface SuccessState {
@@ -18,6 +19,11 @@ const OrderSuccessPage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen flex items-center justify-center px-6">
+            <SEO
+                title="Order Success"
+                description={`Thank you for your purchase! Your order ${orderId} has been confirmed at Ruvera Couture.`}
+                keywords="order success, order confirmation, luxury fashion"
+            />
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

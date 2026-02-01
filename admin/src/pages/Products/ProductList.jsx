@@ -117,6 +117,7 @@ export default function ProductList() {
                         <thead>
                             <tr className="bg-stone-50 border-b border-stone-100">
                                 <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Product</th>
+                                <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Order</th>
                                 <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Code</th>
                                 <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Price</th>
                                 <th className="p-4 font-medium text-stone-500 uppercase tracking-wider text-xs">Status</th>
@@ -167,6 +168,7 @@ export default function ProductList() {
                                                 </div>
                                             </div>
                                         </td>
+                                        <td className="p-4 text-sm text-stone-600 font-mono">{product.sort_order}</td>
                                         <td className="p-4 text-sm text-stone-600 font-mono">{product.code}</td>
                                         <td className="p-4 text-sm font-medium text-midnight">{settings.currency_symbol}{product.price.toLocaleString()}</td>
                                         <td className="p-4">

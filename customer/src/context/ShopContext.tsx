@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import api from '../services/api.service';
 import logger from '../utils/logger';
 import logRocketService from '../utils/logrocketService';
+import firebaseAnalytics from '../utils/firebaseAnalytics';
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
@@ -244,6 +245,14 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         };
         logger.info('Action: Add to Cart', { productId: product.id, name: product.name, price: resolvedPrice });
 
+        // Firebase Analytics
+        firebaseAnalytics.logAddToCart(
+            String(product.id),
+            product.name,
+            currency.code,
+            resolvedPrice
+        );
+
         if (user?.backendToken) {
             try {
                 const res = await api.post(API_ENDPOINTS.CART.ADD_ITEM, {
@@ -340,6 +349,17 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         const itemToRemove = cart[index];
         if (itemToRemove) {
             logger.info('Action: Remove from Cart', { productId: itemToRemove.id, name: itemToRemove.name });
+
+            // Firebase Analytics
+            firebaseAnalytics.logEvent('remove_from_cart', {
+                currency: currency.code,
+                value: itemToRemove.price,
+                items: [{
+                    item_id: String(itemToRemove.id),
+                    item_name: itemToRemove.name
+                }]
+            });
+
             if (user?.backendToken && itemToRemove.cartItemId) {
                 try {
                     await api.delete(API_ENDPOINTS.CART.REMOVE_ITEM(itemToRemove.cartItemId));
@@ -388,6 +408,17 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
 
     const addToWishlist = async (product: Product) => {
         logger.info('Action: Add to Wishlist', { productId: product.id, name: product.name });
+
+        // Firebase Analytics
+        firebaseAnalytics.logEvent('add_to_wishlist', {
+            currency: currency.code,
+            value: typeof product.price === 'number' ? product.price : 0,
+            items: [{
+                item_id: String(product.id),
+                item_name: product.name
+            }]
+        });
+
         if (!isInWishlist(product.id)) {
             if (user?.backendToken) {
                 try {

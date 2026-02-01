@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Plus, Edit2, Trash2, Check, X, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import SEO from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../firebase';
 import logger from '../utils/logger';
@@ -27,6 +28,7 @@ interface Address {
 }
 
 const UserProfilePage: React.FC = () => {
+    // ... (keep all state and useEffects)
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'profile' | 'addresses'>('profile');
@@ -206,6 +208,11 @@ const UserProfilePage: React.FC = () => {
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
+            <SEO
+                title="My Profile"
+                description="Manage your Ruvera Couture profile, addresses, and account settings."
+                keywords="profile, account, settings, address book"
+            />
             <div id="recaptcha-container"></div>
 
             <div className="max-w-5xl mx-auto">

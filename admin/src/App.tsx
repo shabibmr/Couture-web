@@ -14,8 +14,6 @@ import { CouponList, CouponEditor } from './pages/Coupons';
 import { BannerList, BannerEditor } from './pages/Banners';
 import Settings from './pages/Settings';
 
-import Login from './pages/Login';
-
 // Navigation tracker component
 const NavigationTracker = () => {
   const location = useLocation();
@@ -44,7 +42,6 @@ function App() {
     <SettingsProvider>
       <NavigationTracker />
       <Routes>
-        <Route path="/login" element={<Login />} />
         <Route path="/" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
 

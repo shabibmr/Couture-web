@@ -71,7 +71,7 @@ export const getAllProducts = async (req, res) => {
             limit: parseInt(limit),
             offset: parseInt(offset),
             include,
-            order: [['created_at', 'DESC']],
+            order: [['sort_order', 'DESC'], ['created_at', 'DESC']],
             distinct: true,
         });
 
