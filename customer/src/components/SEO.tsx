@@ -19,8 +19,10 @@ const SEO: React.FC<SEOProps> = ({
     type = 'website'
 }) => {
     const siteTitle = 'Ruvera Couture';
-    const defaultImage = '/logo.png'; // Assuming there is a default logo or we can use a placeholder if not
+    const defaultImage = '/logo.webp';
     const siteUrl = 'https://ruvera-couture.web.app'; // Replace with actual domain when known, or dynamic
+
+    const seoImage = image || defaultImage;
 
     return (
         <Helmet>
@@ -33,16 +35,15 @@ const SEO: React.FC<SEOProps> = ({
             <meta property='og:type' content={type} />
             <meta property='og:title' content={title} />
             <meta property='og:description' content={description} />
-            {image && <meta property='og:image' content={image} />}
-            {/* <meta property='og:image' content={image || defaultImage} /> */}
+            <meta property='og:image' content={seoImage} />
             {url && <meta property='og:url' content={url} />}
 
             {/* Twitter tags */}
             <meta name='twitter:creator' content={siteTitle} />
-            <meta name='twitter:card' content={type === 'article' ? 'summary_large_image' : 'summary'} />
+            <meta name='twitter:card' content={type === 'article' || image ? 'summary_large_image' : 'summary'} />
             <meta name='twitter:title' content={title} />
             <meta name='twitter:description' content={description} />
-            {image && <meta name='twitter:image' content={image} />}
+            <meta name='twitter:image' content={seoImage} />
         </Helmet>
     );
 };

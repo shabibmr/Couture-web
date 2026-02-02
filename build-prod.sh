@@ -121,14 +121,14 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 PACKAGE_NAME="ruvera-couture-prod-${TIMESTAMP}.tar.gz"
 
 tar -czf "$PACKAGE_NAME" \
+    --exclude='node_modules' \
+    --exclude='*.log' \
     backend/dist \
     backend/package.json \
     backend/package-lock.json \
     backend/.env.production \
     customer/dist \
-    admin/dist \
-    --exclude='node_modules' \
-    --exclude='*.log'
+    admin/dist
 
 if [ $? -eq 0 ]; then
     PACKAGE_SIZE=$(du -sh "$PACKAGE_NAME" | cut -f1)

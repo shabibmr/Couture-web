@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Heart, Star } from 'lucide-react';
+import SEO from '../components/SEO';
 import { useShop } from '../context/ShopContext';
 import { Product } from '../types';
 import { API_ENDPOINTS } from '../config/api.config';
@@ -151,6 +152,12 @@ const ProductDetail: React.FC = () => {
 
     return (
         <div className="bg-beige-bg">
+            <SEO
+                title={displayTitle}
+                description={displayDescription.substring(0, 160)}
+                image={displayImage}
+                type="product"
+            />
             <div className="container mx-auto px-6 pb-20">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-24 md:pt-32">
                     {/* Product Image */}
