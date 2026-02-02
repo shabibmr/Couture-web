@@ -246,7 +246,14 @@ export const getOrders = async (req, res) => {
             offset: parseInt(offset),
             order: [['order_date', 'DESC']],
             include: [
-                { model: OrderItem, as: 'items' },
+                {
+                    model: OrderItem,
+                    as: 'items',
+                    include: [{
+                        model: ProductVariant,
+                        include: [Product]
+                    }]
+                },
                 {
                     model: Customer,
                     attributes: ['id', 'first_name', 'last_name', 'email', 'phone']
@@ -262,11 +269,24 @@ export const getOrders = async (req, res) => {
             distinct: true
         });
 
+        // Map orders to include item images
+        const mappedOrders = orders.rows.map(order => {
+            const orderJson = order.toJSON();
+            orderJson.items = (orderJson.items || []).map(item => {
+                const product = item.ProductVariant?.Product || {};
+                return {
+                    ...item,
+                    image: item.ProductVariant?.variant_image || product.image || product.featured_image || '',
+                };
+            });
+            return orderJson;
+        });
+
         res.json({
             total: orders.count,
             pages: Math.ceil(orders.count / limit),
             currentPage: parseInt(page),
-            data: orders.rows
+            data: mappedOrders
         });
     } catch (error) {
         console.error('Error fetching orders:', error);
@@ -282,7 +302,14 @@ export const getOrderById = async (req, res) => {
         const order = await Order.findOne({
             where: { id, customer_id },
             include: [
-                { model: OrderItem, as: 'items' },
+                {
+                    model: OrderItem,
+                    as: 'items',
+                    include: [{
+                        model: ProductVariant,
+                        include: [Product]
+                    }]
+                },
                 {
                     model: Customer,
                     attributes: ['id', 'first_name', 'last_name', 'email', 'phone']
@@ -301,7 +328,16 @@ export const getOrderById = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        res.json(order);
+        const orderJson = order.toJSON();
+        orderJson.items = (orderJson.items || []).map(item => {
+            const product = item.ProductVariant?.Product || {};
+            return {
+                ...item,
+                image: item.ProductVariant?.variant_image || product.image || product.featured_image || '',
+            };
+        });
+
+        res.json(orderJson);
     } catch (error) {
         console.error('Error fetching order:', error);
         res.status(500).json({ message: 'Server error' });
@@ -316,7 +352,14 @@ export const getOrderByIdAdmin = async (req, res) => {
         const order = await Order.findOne({
             where: { id },
             include: [
-                { model: OrderItem, as: 'items' },
+                {
+                    model: OrderItem,
+                    as: 'items',
+                    include: [{
+                        model: ProductVariant,
+                        include: [Product]
+                    }]
+                },
                 {
                     model: Customer,
                     attributes: ['id', 'first_name', 'last_name', 'email', 'phone']
@@ -335,7 +378,16 @@ export const getOrderByIdAdmin = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        res.json(order);
+        const orderJson = order.toJSON();
+        orderJson.items = (orderJson.items || []).map(item => {
+            const product = item.ProductVariant?.Product || {};
+            return {
+                ...item,
+                image: item.ProductVariant?.variant_image || product.image || product.featured_image || '',
+            };
+        });
+
+        res.json(orderJson);
     } catch (error) {
         console.error('Error fetching order:', error);
         res.status(500).json({ message: 'Server error' });

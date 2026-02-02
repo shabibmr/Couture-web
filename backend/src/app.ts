@@ -29,7 +29,9 @@ app.use(cors({
         'http://localhost:3014',
         'http://localhost:3000',
         'http://localhost:5173',
+        'http://localhost:5174',
         'https://ruveracouture.com',
+        'https://www.ruveracouture.com',
         'https://admin.ruveracouture.com',
         process.env.FRONTEND_URL,
         process.env.ADMIN_URL

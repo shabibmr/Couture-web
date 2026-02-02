@@ -168,8 +168,6 @@ export default function ProductEditor() {
                 category_id: formData.category,
                 is_active: formData.is_active,
                 is_new_arrival: formData.is_new_arrival,
-                is_active: formData.is_active,
-                is_new_arrival: formData.is_new_arrival,
                 is_featured: formData.is_featured,
                 sort_order: parseInt(formData.sort_order) || 0
             };

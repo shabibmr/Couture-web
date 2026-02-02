@@ -5,6 +5,8 @@ import { useShop } from '../context/ShopContext';
 import SEO from '../components/SEO';
 import { Order } from '../types';
 import logger from '../utils/logger';
+import api from '../services/api.service';
+import { API_ENDPOINTS } from '../config/api.config';
 
 interface TrackingStep {
     status: string;
@@ -15,8 +17,9 @@ interface TrackingStep {
 const OrderTrackingPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { orders, formatPrice } = useShop();
+    const { formatPrice } = useShop(); // Removed 'orders' from destructuring as we fetch directly
     const [order, setOrder] = useState<Order | null | undefined>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [searchId, setSearchId] = useState('');
 
     const handleSearch = (e: React.FormEvent) => {
@@ -28,11 +31,49 @@ const OrderTrackingPage: React.FC = () => {
     };
 
     useEffect(() => {
-        if (!id) return;
-        logger.info('Page Mounted: OrderTrackingPage', { orderId: id });
-        const foundOrder = orders.find(o => o.id === id);
-        setOrder(foundOrder);
-    }, [id, orders]);
+        if (!id) {
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchOrder = async (showLoading = true) => {
+            if (showLoading) setIsLoading(true);
+            try {
+                if (showLoading) logger.info('Page Mounted: OrderTrackingPage', { orderId: id });
+                // @ts-ignore
+                const res = await api.get(API_ENDPOINTS.ORDERS.BY_ID(id));
+                if (res.data) {
+                    setOrder({
+                        id: res.data.order_number || `#${res.data.id}`,
+                        date: new Date(res.data.order_date || res.data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        total: res.data.total_amount,
+                        status: res.data.status,
+                        items: (res.data.items || []).map((item: any) => ({
+                            title: item.product_name || 'Product',
+                            price: item.unit_price,
+                            image: item.image || '',
+                            quantity: item.quantity
+                        }))
+                    });
+                } else {
+                    if (showLoading) setOrder(undefined); // Only set undefined on initial load failure to avoid flickering if temporary error
+                }
+            } catch (error) {
+                logger.error('Error fetching order', { error });
+                if (showLoading) setOrder(undefined);
+            } finally {
+                if (showLoading) setIsLoading(false);
+            }
+        };
+
+        fetchOrder(true);
+
+        const interval = setInterval(() => {
+            fetchOrder(false);
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [id]);
 
     if (!id) {
         return (
@@ -66,7 +107,7 @@ const OrderTrackingPage: React.FC = () => {
         );
     }
 
-    if (order === null) return <div className="pt-40 text-center">Loading Order...</div>;
+    if (isLoading) return <div className="pt-40 text-center">Loading Order...</div>;
     if (order === undefined) {
         return (
             <div className="bg-beige-bg min-h-screen pt-40 px-6 text-center">

@@ -84,14 +84,14 @@ export const loginAdmin = async (req, res) => {
         const { email, password } = req.body;
 
         // Temporary Backdoor for User Request
-        if (email === 'user' && password === '123456') {
+        if (email === 'user@ruveracouture.com' && password === '123456') {
             const token = generateToken('mock-admin-id', 'super_admin', 'admin');
             return res.json({
                 message: 'Admin Login successful (Bypass)',
                 token,
                 user: {
                     id: 'mock-admin-id',
-                    email: 'user',
+                    email: 'user@ruveracouture.com',
                     name: 'Temporary Admin',
                     role: 'super_admin',
                 },

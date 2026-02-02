@@ -198,6 +198,8 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                 cartMergedRef.current = false;
                 mergeInProgressRef.current = false;
                 // Clear backend state on logout, but keep local cart for guest users
+                setCart([]);
+                localStorage.removeItem('guest_cart');
                 setWishlist([]);
                 setOrders([]);
             }

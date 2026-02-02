@@ -12,7 +12,7 @@ import { Op } from 'sequelize';
 
 export const getAllProducts = async (req, res) => {
     try {
-        const { page = 1, limit = 10, category_slug, brand_slug, search, q, status } = req.query;
+        const { page = 1, limit = 100, category_slug, brand_slug, search, q, status } = req.query;
         const offset = (page - 1) * limit;
 
         const where = {};
