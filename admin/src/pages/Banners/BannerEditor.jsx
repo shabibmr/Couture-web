@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Image, Upload } from 'lucide-react';
 
 import api from '../../services/api';
+import { ImageUpload } from '../../components/common/ImageUpload';
 
 export default function BannerEditor() {
     const { id } = useParams();
@@ -68,26 +69,14 @@ export default function BannerEditor() {
             <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-stone-100 p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="col-span-full">
-                        <label className="text-sm font-medium text-stone-600 block mb-2">Banner Image</label>
-                        <div className="border-2 border-dashed border-stone-200 rounded-xl p-8 text-center hover:bg-stone-50 transition-colors cursor-pointer group">
-                            {formData.image ? (
-                                <div className="relative">
-                                    <img src={formData.image} alt="Preview" className="max-h-64 mx-auto rounded-lg shadow-sm" />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                        <span className="text-white font-medium flex items-center gap-2">
-                                            <Upload size={20} /> Change Image
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="py-8">
-                                    <Image size={48} className="mx-auto text-stone-300 mb-4" />
-                                    <p className="text-stone-500 font-medium">Click to upload image</p>
-                                    <p className="text-stone-400 text-sm mt-1">Recommended size: 1920x600px</p>
-                                </div>
-                            )}
-                            <input type="file" className="hidden" />
-                        </div>
+                        <ImageUpload
+                            label="Banner Image"
+                            currentImageUrl={formData.image}
+                            onImageUploaded={(url) => setFormData({ ...formData, image: url })}
+                            onRemove={() => setFormData({ ...formData, image: '' })}
+                            onError={(err) => alert(err)}
+                            aspectRatio="video" // Wide aspect for banners
+                        />
                     </div>
 
                     <div className="space-y-2">

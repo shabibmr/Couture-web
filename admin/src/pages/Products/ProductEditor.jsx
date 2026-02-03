@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Upload, X } from 'lucide-react';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
+import { ImageUpload } from '../../components/common/ImageUpload';
 
 export default function ProductEditor() {
     const { id } = useParams();
@@ -108,38 +109,20 @@ export default function ProductEditor() {
         });
     };
 
-    const handleImageUpload = (e, type, index = null) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const handleMainImageUploaded = (url) => {
+        setFormData(prev => ({ ...prev, mainImage: url }));
+    };
 
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            alert('Please upload an image file');
-            return;
-        }
+    const handleAdditionalImageUploaded = (url, index) => {
+        setFormData(prev => {
+            const newAdditionalImages = [...prev.additionalImages];
+            newAdditionalImages[index] = url;
+            return { ...prev, additionalImages: newAdditionalImages };
+        });
+    };
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Image size should be less than 5MB');
-            return;
-        }
-
-        // Convert to base64 for preview (in production, upload to server/cloud)
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result;
-
-            if (type === 'main') {
-                setFormData(prev => ({ ...prev, mainImage: base64String }));
-            } else if (type === 'additional' && index !== null) {
-                setFormData(prev => {
-                    const newAdditionalImages = [...prev.additionalImages];
-                    newAdditionalImages[index] = base64String;
-                    return { ...prev, additionalImages: newAdditionalImages };
-                });
-            }
-        };
-        reader.readAsDataURL(file);
+    const handleRemoveMainImage = () => {
+        setFormData(prev => ({ ...prev, mainImage: '' }));
     };
 
     const handleRemoveAdditionalImage = (index) => {
@@ -296,41 +279,14 @@ export default function ProductEditor() {
 
                         {/* Main Image */}
                         <div>
-                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-3">
-                                Main Product Image (Optional)
-                            </label>
-                            <div className="w-full aspect-[3/4] bg-stone-100 rounded-xl border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 hover:bg-stone-50 hover:border-ruvera-gold/50 cursor-pointer transition-colors relative overflow-hidden group">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => handleImageUpload(e, 'main')}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                />
-                                {formData.mainImage ? (
-                                    <>
-                                        <img src={formData.mainImage} alt="Main Preview" className="absolute inset-0 w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-0">
-                                            <p className="text-white font-medium mb-2">Change Image</p>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setFormData(prev => ({ ...prev, mainImage: '' }));
-                                                }}
-                                                className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Upload size={32} className="mb-2" />
-                                        <span className="text-sm font-medium">Upload Main Image</span>
-                                        <span className="text-xs text-stone-400 mt-1">Click or drag to upload</span>
-                                    </>
-                                )}
-                            </div>
+                            <ImageUpload
+                                label="Main Product Image (Optional)"
+                                currentImageUrl={formData.mainImage}
+                                onImageUploaded={(url) => handleMainImageUploaded(url)}
+                                onRemove={handleRemoveMainImage}
+                                onError={(err) => alert(err)}
+                                aspectRatio="3/4"
+                            />
                         </div>
 
                         {/* Additional Images */}
@@ -343,38 +299,14 @@ export default function ProductEditor() {
                             </label>
                             <div className="grid grid-cols-3 gap-3">
                                 {formData.additionalImages.map((img, index) => (
-                                    <div
-                                        key={index}
-                                        className="aspect-square bg-stone-100 rounded-lg border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 hover:bg-stone-50 hover:border-ruvera-gold/50 cursor-pointer transition-colors relative overflow-hidden group"
-                                    >
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => handleImageUpload(e, 'additional', index)}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    <div key={index}>
+                                        <ImageUpload
+                                            currentImageUrl={img}
+                                            onImageUploaded={(url) => handleAdditionalImageUploaded(url, index)}
+                                            onRemove={() => handleRemoveAdditionalImage(index)}
+                                            onError={(err) => alert(err)}
+                                            aspectRatio="1/1"
                                         />
-                                        {img ? (
-                                            <>
-                                                <img src={img} alt={`Additional ${index + 1}`} className="absolute inset-0 w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleRemoveAdditionalImage(index);
-                                                        }}
-                                                        className="p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                                                    >
-                                                        <X size={14} />
-                                                    </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Upload size={20} className="mb-1" />
-                                                <span className="text-xs">Image {index + 1}</span>
-                                            </>
-                                        )}
                                     </div>
                                 ))}
                             </div>

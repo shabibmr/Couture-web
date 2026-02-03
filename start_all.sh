@@ -15,15 +15,21 @@ cd "$ROOT/backend" && npm run dev > "$ROOT/backend.log" 2>&1 &
 BACKEND_PID=$!
 echo "Backend service started (PID: $BACKEND_PID)"
 
-# Start customer service
+# Start customer service (Vite/Legacy)
 cd "$ROOT/customer" && npm run dev > "$ROOT/customer.log" 2>&1 &
 CUSTOMER_PID=$!
 echo "Customer service started (PID: $CUSTOMER_PID)"
+
+# Start store-front service (Next.js)
+cd "$ROOT/store-front" && npm run dev > "$ROOT/store-front.log" 2>&1 &
+STORE_FRONT_PID=$!
+echo "Store-front service started (PID: $STORE_FRONT_PID)"
 
 # Save PIDs to a file for easy management
 echo "$ADMIN_PID" > "$ROOT/.pids"
 echo "$BACKEND_PID" >> "$ROOT/.pids"
 echo "$CUSTOMER_PID" >> "$ROOT/.pids"
+echo "$STORE_FRONT_PID" >> "$ROOT/.pids"
 
 echo -e "\n\033[33mWaiting for services to initialize and bind ports...\033[0m"
 
@@ -31,6 +37,7 @@ echo -e "\n\033[33mWaiting for services to initialize and bind ports...\033[0m"
 ADMIN_URL=""
 BACKEND_PORT=""
 CUSTOMER_URL=""
+STORE_FRONT_URL=""
 
 # Loop to check logs for ports (timeout after 30 seconds)
 MAX_RETRIES=30
@@ -46,13 +53,19 @@ for ((i=1; i<=MAX_RETRIES; i++)); do
         CUSTOMER_URL=$(grep -o "http://localhost:[0-9]*" "$ROOT/customer.log" | tail -n 1)
     fi
 
+    # Check Store Front Log for "Local: http://localhost:PORT"
+    if [ -z "$STORE_FRONT_URL" ] && [ -f "$ROOT/store-front.log" ]; then
+        # Next.js usually shows "Ready in ... (Local: http://localhost:3000)"
+        STORE_FRONT_URL=$(grep -o "http://localhost:[0-9]*" "$ROOT/store-front.log" | grep -v "5000" | tail -n 1)
+    fi
+
     # Check Backend Log for "Server is running on port PORT"
     if [ -z "$BACKEND_PORT" ] && [ -f "$ROOT/backend.log" ]; then
         BACKEND_PORT=$(grep "Server is running on port" "$ROOT/backend.log" | awk '{print $NF}' | tr -d '\r')
     fi
 
-    # If all found, break
-    if [ -n "$ADMIN_URL" ] && [ -n "$CUSTOMER_URL" ] && [ -n "$BACKEND_PORT" ]; then
+    # If all found (or timeout), break
+    if [ -n "$ADMIN_URL" ] && [ -n "$CUSTOMER_URL" ] && [ -n "$BACKEND_PORT" ] && [ -n "$STORE_FRONT_URL" ]; then
         break
     fi
 
@@ -64,19 +77,20 @@ echo ""
 # Default values if not found (fallback to expected to not show empty)
 [ -z "$ADMIN_URL" ] && ADMIN_URL="http://localhost:5174 (Not detected yet)"
 [ -z "$CUSTOMER_URL" ] && CUSTOMER_URL="http://localhost:5173 (Not detected yet)"
+[ -z "$STORE_FRONT_URL" ] && STORE_FRONT_URL="http://localhost:5171 (Not detected yet)"
 [ -z "$BACKEND_PORT" ] && BACKEND_PORT="5000 (Not detected yet)"
 
 echo -e "\n\033[32mAll services started.\033[0m"
 echo "----------------------------------"
-echo "Actual Running Ports:"
-echo "  Admin:    $ADMIN_URL"
-echo "  Backend:  http://localhost:$BACKEND_PORT"
-echo "  Customer: $CUSTOMER_URL"
+echo "  Admin:       $ADMIN_URL"
+echo "  Backend:     http://localhost:$BACKEND_PORT"
+echo "  Customer:    $CUSTOMER_URL"
+echo "  Store Front: $STORE_FRONT_URL"
 echo "----------------------------------"
-echo "Commands to manage services:"
 echo "1. View logs:      tail -f admin.log"
 echo "                   tail -f backend.log"
 echo "                   tail -f customer.log"
+echo "                   tail -f store-front.log"
 echo "2. Check processes: ps -p \$(cat .pids)"
 echo "3. Stop all:       ./stop_all.sh"
 echo "----------------------------------"

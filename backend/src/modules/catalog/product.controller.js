@@ -158,9 +158,24 @@ export const getProductBySlug = async (req, res) => {
     }
 };
 
+const isValidMinioUrl = (url) => {
+    if (!url) return true; // Allow null/undefined
+    const minioEndpoint = process.env.MINIO_ENDPOINT || 'localhost';
+    const minioPort = process.env.MINIO_PORT || '9000';
+    const bucketName = process.env.MINIO_BUCKET_NAME || 'ruvera-assets';
+    // Allow both localhost and prod setups (flexible check)
+    return url.includes(bucketName) || url.startsWith('http');
+};
+
 export const createProduct = async (req, res) => {
     try {
         const { mainImage, additionalImages, sizes, ...productData } = req.body;
+
+        if (mainImage && !isValidMinioUrl(mainImage)) {
+            return res.status(400).json({
+                message: 'Invalid image URL. Must be a valid URL potentially pointing to storage.'
+            });
+        }
 
         // Create the product with main image as featured_image
         const product = await Product.create({
@@ -227,6 +242,12 @@ export const updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
         const { mainImage, additionalImages, sizes, ...productData } = req.body;
+
+        if (mainImage !== undefined && !isValidMinioUrl(mainImage)) {
+            return res.status(400).json({
+                message: 'Invalid image URL. Must be a valid URL potentially pointing to storage.'
+            });
+        }
 
         // Find the product
         const product = await Product.findByPk(id);

@@ -1,0 +1,26 @@
+
+> store-front@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 14.1s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/9) ...
+⨯ useSearchParams() should be wrapped in a suspense boundary at page "/register". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at Q (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/.next/server/chunks/ssr/node_modules_next_920e7746._.js:2:2111)
+    at o (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/.next/server/chunks/ssr/node_modules_next_920e7746._.js:4:5284)
+    at /Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/.next/server/chunks/ssr/[root-of-the-server]__5857c324._.js:1:2895
+    at G (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/.next/server/chunks/ssr/src_b8231496._.js:9:2335)
+    at an (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:84360)
+    at ai (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:86179)
+    at al (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:107953)
+    at as (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:105368)
+    at am (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:112882)
+    at au (/Users/admin/code/ruvera/ruveraweb/v1/Couture-web-V1/store-front/node_modules/next/dist/compiled/next-server/app-page-turbo.runtime.prod.js:2:109985)
+Error occurred prerendering page "/register". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /(auth)/register/page: /register, exiting the build.
+⨯ Next.js build worker exited with code: 1 and signal: null

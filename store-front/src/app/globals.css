@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-ruvera-gold {
+    color: #AF9164;
+  }
+  .bg-ruvera-gold {
+    background-color: #AF9164;
+  }
+  .border-ruvera-gold {
+    border-color: #AF9164;
+  }
+  .hover\:text-ruvera-gold:hover {
+    color: #AF9164;
+  }
+  .hover\:bg-ruvera-gold:hover {
+    background-color: #AF9164;
+  }
+  .group:hover .group-hover\:text-ruvera-gold {
+    color: #AF9164;
+  }
+  .group:hover .group-hover\:bg-ruvera-gold {
+    background-color: #AF9164;
+  }
+  .bg-beige-bg {
+    background-color: #FDFBF7;
+  }
+  .text-midnight {
+    color: #1A1A1A;
+  }
+  .bg-midnight {
+    background-color: #1A1A1A;
+  }
+}
+
+/* 
+  Fonts should be loaded via next/font in layout.tsx 
+  Ported from customer/src/index.css
+*/
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background-color: #FDFBF7;
+  /* Rich Cream Background */
+  overflow-x: hidden;
+  color: #1A1A1A;
+}
+
+/* Custom Scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
+}
