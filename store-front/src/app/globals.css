@@ -1,54 +1,30 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer utilities {
-  .text-ruvera-gold {
-    color: #AF9164;
-  }
-  .bg-ruvera-gold {
-    background-color: #AF9164;
-  }
-  .border-ruvera-gold {
-    border-color: #AF9164;
-  }
-  .hover\:text-ruvera-gold:hover {
-    color: #AF9164;
-  }
-  .hover\:bg-ruvera-gold:hover {
-    background-color: #AF9164;
-  }
-  .group:hover .group-hover\:text-ruvera-gold {
-    color: #AF9164;
-  }
-  .group:hover .group-hover\:bg-ruvera-gold {
-    background-color: #AF9164;
-  }
-  .bg-beige-bg {
-    background-color: #FDFBF7;
-  }
-  .text-midnight {
-    color: #1A1A1A;
-  }
-  .bg-midnight {
-    background-color: #1A1A1A;
-  }
+@theme {
+  --font-montserrat: "Montserrat", sans-serif;
+  --font-playfair: "Playfair Display", serif;
+
+  --color-beige-bg: #FDFBF7;
+  --color-ruvera-gold: #AF9164;
+  --color-midnight: #1A1A1A;
+
+  --radius-blob-1: 50% 50% 40% 60% / 60% 50% 60% 40%;
+  --radius-blob-2: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  --radius-blob-3: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  --radius-blob-4: 40% 60% 70% 30% / 40% 50% 60% 50%;
 }
 
-/* 
-  Fonts should be loaded via next/font in layout.tsx 
-  Ported from customer/src/index.css
-*/
-
+/* Custom Global Styles */
 body {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
   background-color: #FDFBF7;
-  /* Rich Cream Background */
-  overflow-x: hidden;
+  /* beige-bg */
   color: #1A1A1A;
+  /* midnight */
+  overflow-x: hidden;
 }
 
-/* Custom Scrollbar for a premium feel */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
