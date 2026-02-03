@@ -27,7 +27,8 @@ const Navbar: React.FC = () => {
                             alt="Ruvéra Couture"
                             width={160}
                             height={40}
-                            className="w-28 md:w-40 h-auto mix-blend-multiply"
+                            className="w-auto h-8 md:h-10 mix-blend-multiply"
+                            style={{ height: 'auto' }}
                         />
                     </Link>
                 </div>

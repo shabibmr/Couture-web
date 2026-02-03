@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --font-montserrat: "Montserrat", sans-serif;
-  --font-playfair: "Playfair Display", serif;
+  /* LINK TAILWIND UTILITIES TO YOUR VARIABLES HERE */
+  /* This ensures 'font-sans' uses Montserrat and 'font-serif' uses Playfair */
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
 
   --color-beige-bg: #FDFBF7;
   --color-ruvera-gold: #AF9164;
@@ -16,11 +18,11 @@
 
 /* Custom Global Styles */
 body {
-  font-family: var(--font-montserrat), sans-serif;
-  background-color: #FDFBF7;
-  /* beige-bg */
-  color: #1A1A1A;
-  /* midnight */
+  /* You can technically remove this font-family line now because 
+     the 'font-sans' class in layout.tsx will handle it correctly 
+     via the theme definition above. */
+  background-color: var(--color-beige-bg);
+  color: var(--color-midnight);
   overflow-x: hidden;
 }
 

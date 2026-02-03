@@ -4,6 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import api from '../../services/api.service';
 import { API_ENDPOINTS } from '../../config/api.config';
+import Image from 'next/image';
+import logo from '../../assets/ruvera_logo.svg';
 
 const Footer: React.FC = () => {
     const currentYear = new Date().getFullYear();
@@ -36,7 +38,14 @@ const Footer: React.FC = () => {
                 {/* Brand Column */}
                 <div className="space-y-6">
                     <Link href="/" className="block">
-                        <h2 className="font-serif text-2xl text-ruvera-gold">RUVÉRA COUTURE</h2>
+                        <Image
+                            src={logo}
+                            alt="Ruvéra Couture"
+                            width={160}
+                            height={40}
+                            className="w-auto h-8 mix-blend-multiply"
+                            style={{ height: 'auto' }}
+                        />
                     </Link>
                     <p className="font-light leading-relaxed max-w-xs text-stone-500">
                         Avant-garde elegance for the modern connoisseur.
