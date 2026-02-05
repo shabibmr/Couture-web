@@ -19,10 +19,16 @@ const SEO: React.FC<SEOProps> = ({
     type = 'website'
 }) => {
     const siteTitle = 'Ruvera Couture';
-    const defaultImage = '/logo.webp';
-    const siteUrl = 'https://ruvera-couture.web.app'; // Replace with actual domain when known, or dynamic
+    const siteUrl = 'https://ruveracouture.com';
+    const defaultImage = `${siteUrl}/logo.webp`;
 
-    const seoImage = image || defaultImage;
+    // Convert relative image URLs to absolute URLs
+    const seoImage = image
+        ? (image.startsWith('http') ? image : `${siteUrl}${image.startsWith('/') ? image : '/' + image}`)
+        : defaultImage;
+
+    // Get current URL if not provided
+    const currentUrl = url || (typeof window !== 'undefined' ? window.location.href : siteUrl);
 
     return (
         <Helmet>
@@ -31,19 +37,24 @@ const SEO: React.FC<SEOProps> = ({
             <meta name='description' content={description} />
             {keywords && <meta name='keywords' content={keywords} />}
 
-            {/* Facebook tags */}
+            {/* Facebook/Open Graph tags */}
+            <meta property='og:site_name' content={siteTitle} />
             <meta property='og:type' content={type} />
-            <meta property='og:title' content={title} />
+            <meta property='og:title' content={`${title} | ${siteTitle}`} />
             <meta property='og:description' content={description} />
             <meta property='og:image' content={seoImage} />
-            {url && <meta property='og:url' content={url} />}
+            <meta property='og:image:secure_url' content={seoImage} />
+            <meta property='og:image:alt' content={title} />
+            <meta property='og:url' content={currentUrl} />
 
             {/* Twitter tags */}
-            <meta name='twitter:creator' content={siteTitle} />
+            <meta name='twitter:site' content='@ruveracouture' />
+            <meta name='twitter:creator' content='@ruveracouture' />
             <meta name='twitter:card' content={type === 'article' || image ? 'summary_large_image' : 'summary'} />
-            <meta name='twitter:title' content={title} />
+            <meta name='twitter:title' content={`${title} | ${siteTitle}`} />
             <meta name='twitter:description' content={description} />
             <meta name='twitter:image' content={seoImage} />
+            <meta name='twitter:image:alt' content={title} />
         </Helmet>
     );
 };

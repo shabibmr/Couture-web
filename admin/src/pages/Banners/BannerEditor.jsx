@@ -12,6 +12,7 @@ export default function BannerEditor() {
 
     const [formData, setFormData] = useState({
         title: '',
+        description: '',
         link: '',
         image: '',
         start: '',
@@ -98,6 +99,17 @@ export default function BannerEditor() {
                             className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold outline-none transition-all"
                             value={formData.title}
                             onChange={e => setFormData({ ...formData, title: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="space-y-2 col-span-full">
+                        <label className="text-sm font-medium text-stone-600">Description</label>
+                        <textarea
+                            rows="3"
+                            placeholder="Enter banner description..."
+                            className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:border-ruvera-gold focus:ring-1 focus:ring-ruvera-gold outline-none transition-all resize-none"
+                            value={formData.description}
+                            onChange={e => setFormData({ ...formData, description: e.target.value })}
                         />
                     </div>
 

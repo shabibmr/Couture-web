@@ -1,0 +1,400 @@
+================================================================================
+RUVERA COUTURE - DEPLOYMENT AND SEO UPDATES
+Date: 2026-02-05
+================================================================================
+
+SUMMARY OF CHANGES:
+1. Created deployment scripts for all three services
+2. Created super_admin account in production database
+3. Updated OG (Open Graph) tags for better social media sharing
+4. Configured production environment with RazorPay Live Mode
+
+================================================================================
+1. DEPLOYMENT SCRIPTS CREATED
+================================================================================
+
+--- /dev/null
++++ b/deploy_backend.sh
+@@ -0,0 +1,47 @@
++#!/bin/bash
++set -e
++
++# Backend Deployment Script
++echo "=================================================="
++echo "📦 Backend API Deployment"
++echo "=================================================="
++
++# Configuration
++PROJECT_ROOT="/home/ruvera/ruveracouture-web"
++DEPLOY_PATH="/var/www/ruvera"
++
++# Copy production .env
++echo "📋 Copying backend production .env..."
++if [ -f "/home/ruvera/.env.production-backend" ]; then
++    cp /home/ruvera/.env.production-backend $PROJECT_ROOT/backend/.env
++    echo "✅ Backend .env copied"
++else
++    echo "❌ Error: /home/ruvera/.env.production-backend not found!"
++    exit 1
++fi
++
++# Verify RazorPay Live Mode
++if grep -q "RAZORPAY_MODE=live" $PROJECT_ROOT/backend/.env; then
++    echo "✅ RazorPay Live Mode confirmed"
++else
++    echo "❌ Error: RazorPay Live Mode not found!"
++    exit 1
++fi
++
++# Build backend
++cd $PROJECT_ROOT/backend
++echo "📥 Installing dependencies..."
++npm install
++
++echo "🔨 Building backend..."
++export NODE_ENV=production
++export RAZORPAY_MODE=live
++npm run build
++
++# Deploy
++echo "🚚 Deploying to $DEPLOY_PATH/backend..."
++rsync -av --delete dist/ $DEPLOY_PATH/backend/dist/
++cp package.json package-lock.json .env $DEPLOY_PATH/backend/
++
++cd $DEPLOY_PATH/backend
++npm install --omit=dev
+
+--- /dev/null
++++ b/deploy_admin.sh
+@@ -0,0 +1,40 @@
++#!/bin/bash
++set -e
++
++# Admin Panel Deployment Script
++echo "=================================================="
++echo "📦 Admin Panel Deployment"
++echo "=================================================="
++
++# Configuration
++PROJECT_ROOT="/home/ruvera/ruveracouture-web"
++DEPLOY_PATH="/var/www/ruvera"
++API_URL="https://apis.ruveracouture.com/"
++
++# Copy production .env
++echo "📋 Copying admin production .env..."
++if [ -f "/home/ruvera/.env.production-admin" ]; then
++    cp /home/ruvera/.env.production-admin $PROJECT_ROOT/admin/.env.production
++    echo "✅ Admin .env.production copied"
++else
++    echo "⚠️  Warning: /home/ruvera/.env.production-admin not found!"
++fi
++
++# Build admin
++cd $PROJECT_ROOT/admin
++echo "📥 Installing dependencies..."
++npm install
++
++echo "🔨 Building admin panel..."
++export VITE_API_URL=$API_URL
++export NODE_ENV=production
++npm run build
++
++# Deploy
++echo "🚚 Deploying to $DEPLOY_PATH/admin/dist..."
++mkdir -p $DEPLOY_PATH/admin/dist
++rsync -av --delete dist/ $DEPLOY_PATH/admin/dist/
++
++echo "✅ Admin panel deployment completed!"
++echo "🌐 Admin: https://admin.ruveracouture.com"
++echo ""
+
+--- /dev/null
++++ b/deploy_customer.sh
+@@ -0,0 +1,40 @@
++#!/bin/bash
++set -e
++
++# Customer Frontend Deployment Script
++echo "=================================================="
++echo "📦 Customer Frontend Deployment"
++echo "=================================================="
++
++# Configuration
++PROJECT_ROOT="/home/ruvera/ruveracouture-web"
++DEPLOY_PATH="/var/www/ruvera"
++API_URL="https://apis.ruveracouture.com/"
++
++# Copy production .env
++echo "📋 Copying customer production .env..."
++if [ -f "/home/ruvera/.env.production-customer" ]; then
++    cp /home/ruvera/.env.production-customer $PROJECT_ROOT/customer/.env.production
++    echo "✅ Customer .env.production copied"
++else
++    echo "⚠️  Warning: /home/ruvera/.env.production-customer not found!"
++fi
++
++# Build customer
++cd $PROJECT_ROOT/customer
++echo "📥 Installing dependencies..."
++npm install
++
++echo "🔨 Building customer frontend..."
++export VITE_API_URL=$API_URL
++export NODE_ENV=production
++npm run build
++
++# Deploy
++echo "🚚 Deploying to $DEPLOY_PATH/customer/dist..."
++mkdir -p $DEPLOY_PATH/customer/dist
++rsync -av --delete dist/ $DEPLOY_PATH/customer/dist/
++
++echo "✅ Customer frontend deployment completed!"
++echo "🌐 Customer: https://ruveracouture.com"
++echo ""
+
+--- /dev/null
++++ b/deploy_all_services.sh
+@@ -0,0 +1,51 @@
++#!/bin/bash
++set -e
++
++# Master Deployment Script - Deploys All Services
++echo "🚀 Starting Complete Deployment for Ruvera Couture..."
++echo "=================================================="
++echo ""
++
++# Get script directory
++SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
++
++# Make all scripts executable
++chmod +x "$SCRIPT_DIR/deploy_backend.sh"
++chmod +x "$SCRIPT_DIR/deploy_admin.sh"
++chmod +x "$SCRIPT_DIR/deploy_customer.sh"
++
++# Deploy Backend
++echo "1️⃣  Deploying Backend API..."
++"$SCRIPT_DIR/deploy_backend.sh"
++
++# Deploy Admin Panel
++echo "2️⃣  Deploying Admin Panel..."
++"$SCRIPT_DIR/deploy_admin.sh"
++
++# Deploy Customer Frontend
++echo "3️⃣  Deploying Customer Frontend..."
++"$SCRIPT_DIR/deploy_customer.sh"
++
++# Summary
++echo "=================================================="
++echo "✅ Complete Deployment Finished Successfully!"
++echo "=================================================="
++echo ""
++echo "🌐 Service URLs:"
++echo "   Customer:  https://ruveracouture.com"
++echo "   Admin:     https://admin.ruveracouture.com"
++echo "   API:       https://apis.ruveracouture.com"
++echo ""
++echo "💳 Payment Configuration:"
++echo "   RazorPay:  LIVE MODE ✅"
++echo ""
++echo "🔧 Backend Status:"
++pm2 status ruvera-api
++echo ""
+
+================================================================================
+2. ADMIN USER CREATION
+================================================================================
+
+DATABASE CHANGES:
+- Created super_admin account in production database
+- Email: admin@ruveracouture.com
+- Password: 123456 (bcrypt hashed)
+- Role: super_admin
+- Status: Active
+
+SQL equivalent:
+INSERT INTO admins (id, email, password_hash, name, role, is_active, created_at, updated_at)
+VALUES (
+  'bff704a6-1057-443d-89af-3dae39624f12',
+  'admin@ruveracouture.com',
+  '$2b$10$8a3FGI0oRbGX1...', -- bcrypt hash of '123456'
+  'Super Admin',
+  'super_admin',
+  1,
+  NOW(),
+  NOW()
+);
+
+================================================================================
+3. OG TAGS UPDATES FOR CUSTOMER FRONTEND
+================================================================================
+
+--- a/customer/src/components/SEO.tsx
++++ b/customer/src/components/SEO.tsx
+@@ -13,18 +13,25 @@ interface SEOProps {
+ const SEO: React.FC<SEOProps> = ({
+     title,
+     description,
+     keywords,
+     image,
+     url,
+     type = 'website'
+ }) => {
+     const siteTitle = 'Ruvera Couture';
+-    const defaultImage = '/logo.webp';
+-    const siteUrl = 'https://ruvera-couture.web.app'; // Replace with actual domain when known, or dynamic
++    const siteUrl = 'https://ruveracouture.com';
++    const defaultImage = `${siteUrl}/logo.webp`;
+
+-    const seoImage = image || defaultImage;
++    // Convert relative image URLs to absolute URLs
++    const seoImage = image
++        ? (image.startsWith('http') ? image : `${siteUrl}${image.startsWith('/') ? image : '/' + image}`)
++        : defaultImage;
++
++    // Get current URL if not provided
++    const currentUrl = url || (typeof window !== 'undefined' ? window.location.href : siteUrl);
+
+     return (
+         <Helmet>
+             {/* Standard metadata tags */}
+             <title>{`${title} | ${siteTitle}`}</title>
+             <meta name='description' content={description} />
+             {keywords && <meta name='keywords' content={keywords} />}
+
+-            {/* Facebook tags */}
++            {/* Facebook/Open Graph tags */}
++            <meta property='og:site_name' content={siteTitle} />
+             <meta property='og:type' content={type} />
+-            <meta property='og:title' content={title} />
++            <meta property='og:title' content={`${title} | ${siteTitle}`} />
+             <meta property='og:description' content={description} />
+             <meta property='og:image' content={seoImage} />
+-            {url && <meta property='og:url' content={url} />}
++            <meta property='og:image:secure_url' content={seoImage} />
++            <meta property='og:image:alt' content={title} />
++            <meta property='og:url' content={currentUrl} />
+
+             {/* Twitter tags */}
+-            <meta name='twitter:creator' content={siteTitle} />
+-            <meta name='twitter:card' content={type === 'article' || image ? 'summary_large_image' : 'summary'} />
+-            <meta name='twitter:title' content={title} />
++            <meta name='twitter:site' content='@ruveracouture' />
++            <meta name='twitter:creator' content='@ruveracouture' />
++            <meta name='twitter:card' content={type === 'article' || image ? 'summary_large_image' : 'summary'} />
++            <meta name='twitter:title' content={`${title} | ${siteTitle}`} />
+             <meta name='twitter:description' content={description} />
+             <meta name='twitter:image' content={seoImage} />
++            <meta name='twitter:image:alt' content={title} />
+         </Helmet>
+     );
+ };
+
+--- a/customer/index.html
++++ b/customer/index.html
+@@ -2,16 +2,36 @@
+ <html lang="en">
+
+ <head>
+   <meta charset="UTF-8" />
+   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-  <title>ruvera-couture</title>
+-  <meta property="og:title" content="Ruvera Couture" />
+-  <meta property="og:description" content="Exclusive collection of Ruvera Couture" />
+-  <meta property="og:image" content="/logo.webp" />
++  <title>Ruvera Couture - Exclusive Designer Collection</title>
++  <meta name="description" content="Discover exclusive designer wear at Ruvera Couture. Shop premium fashion, elegant dresses, and timeless styles." />
++
++  <!-- Open Graph / Facebook -->
++  <meta property="og:site_name" content="Ruvera Couture" />
+   <meta property="og:type" content="website" />
++  <meta property="og:url" content="https://ruveracouture.com" />
++  <meta property="og:title" content="Ruvera Couture - Exclusive Designer Collection" />
++  <meta property="og:description" content="Discover exclusive designer wear at Ruvera Couture. Shop premium fashion, elegant dresses, and timeless styles." />
++  <meta property="og:image" content="https://ruveracouture.com/logo.webp" />
++  <meta property="og:image:secure_url" content="https://ruveracouture.com/logo.webp" />
++  <meta property="og:image:alt" content="Ruvera Couture Logo" />
++  <meta property="og:image:width" content="1200" />
++  <meta property="og:image:height" content="630" />
++
++  <!-- Twitter -->
+   <meta name="twitter:card" content="summary_large_image" />
+-  <meta name="twitter:title" content="Ruvera Couture" />
+-  <meta name="twitter:description" content="Exclusive collection of Ruvera Couture" />
+-  <meta name="twitter:image" content="/logo.webp" />
++  <meta name="twitter:site" content="@ruveracouture" />
++  <meta name="twitter:creator" content="@ruveracouture" />
++  <meta name="twitter:url" content="https://ruveracouture.com" />
++  <meta name="twitter:title" content="Ruvera Couture - Exclusive Designer Collection" />
++  <meta name="twitter:description" content="Discover exclusive designer wear at Ruvera Couture. Shop premium fashion, elegant dresses, and timeless styles." />
++  <meta name="twitter:image" content="https://ruveracouture.com/logo.webp" />
++  <meta name="twitter:image:alt" content="Ruvera Couture Logo" />
++
+   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+ </head>
+
+================================================================================
+4. PRODUCTION ENVIRONMENT CONFIGURATION
+================================================================================
+
+Backend Environment (.env.production-backend):
+- PORT=5000
+- NODE_ENV=production
+- DB_HOST=127.0.0.1
+- DB_NAME=couture_db
+- RAZORPAY_MODE=live ✅
+- RAZORPAY_LIVE_KEY_ID=rzp_live_SAotxZcPmfsC9A
+- RAZORPAY_LIVE_KEY_SECRET=HmXVsB2OEnYhgpW72El1sEIt
+- RAZORPAY_LIVE_WEBHOOK_SECRET=@269mGxFeZZ7qN9
+- FRONTEND_URL=https://ruveracouture.com
+- ADMIN_URL=https://admin.ruveracouture.com
+- API_URL=https://apis.ruveracouture.com
+
+Admin Environment (.env.production-admin):
+- VITE_API_URL=https://apis.ruveracouture.com/
+- VITE_APP_NAME=Ruvera Admin
+
+Customer Environment (.env.production-customer):
+- VITE_API_URL=https://apis.ruveracouture.com/
+- VITE_APP_NAME=Ruvera Couture
+- Firebase configuration included
+
+================================================================================
+5. DEPLOYMENT VERIFICATION
+================================================================================
+
+✅ All services deployed successfully:
+- Backend API: Running on PM2, port 5000
+- Admin Panel: https://admin.ruveracouture.com
+- Customer Frontend: https://ruveracouture.com
+
+✅ RazorPay configured in LIVE mode
+✅ Admin login working: admin@ruveracouture.com / 123456
+✅ OG tags using production URLs with absolute paths
+✅ All images use absolute URLs for social media sharing
+
+================================================================================
+6. TESTING RECOMMENDATIONS
+================================================================================
+
+1. Test Admin Login:
+   URL: https://admin.ruveracouture.com
+   Email: admin@ruveracouture.com
+   Password: 123456
+
+2. Test OG Tags:
+   - Facebook Debugger: https://developers.facebook.com/tools/debug/
+   - Twitter Card Validator: https://cards-dev.twitter.com/validator
+   - LinkedIn Post Inspector: https://www.linkedin.com/post-inspector/
+
+3. Test RazorPay Integration:
+   - Verify payment gateway is in LIVE mode
+   - Test checkout flow with real payment
+
+4. Verify API Endpoints:
+   - Customer API: https://apis.ruveracouture.com/products
+   - Admin API: https://apis.ruveracouture.com/auth/admin/login
+
+================================================================================
+END OF CHANGES
+================================================================================
