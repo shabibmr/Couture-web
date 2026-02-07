@@ -4,6 +4,20 @@ import ProductImage from '../modules/catalog/models/product_image.model.js';
 import minioClient, { BUCKETS, MINIO_PUBLIC_URL, ensureBucket } from '../config/minio.js';
 import { v4 as uuidv4 } from 'uuid';
 
+interface ProductInstance {
+    id: string;
+    name: string;
+    featured_image: string | null;
+    update(data: Partial<ProductInstance>): Promise<ProductInstance>;
+}
+
+interface ProductImageInstance {
+    id: string;
+    product_id: string;
+    image_url: string;
+    update(data: Partial<ProductImageInstance>): Promise<ProductImageInstance>;
+}
+
 /**
  * Migration Script: Convert Base64 Images to MinIO URLs
  * 
@@ -120,7 +134,8 @@ async function uploadBase64ToMinio(
 /**
  * Migrate a single product's images
  */
-async function migrateProduct(product: any, stats: MigrationStats): Promise<void> {
+async function migrateProduct(productData: any, stats: MigrationStats): Promise<void> {
+    const product = productData as ProductInstance;
     console.log(`\n--- Processing Product: ${product.name} (${product.id}) ---`);
 
     // Migrate featured image
@@ -148,7 +163,8 @@ async function migrateProduct(product: any, stats: MigrationStats): Promise<void
         where: { product_id: product.id }
     });
 
-    for (const image of additionalImages) {
+    for (const imageData of additionalImages) {
+        const image = imageData as unknown as ProductImageInstance;
         if (isBase64(image.image_url)) {
             console.log(`Migrating additional image ${image.id}...`);
             const url = await uploadBase64ToMinio(
@@ -200,7 +216,8 @@ async function migrateImagesToMinio(): Promise<void> {
         console.log(`Found ${stats.totalProducts} products\n`);
 
         // Process each product
-        for (const product of products) {
+        for (const productData of products) {
+            const product = productData as unknown as ProductInstance;
             try {
                 await migrateProduct(product, stats);
             } catch (error) {

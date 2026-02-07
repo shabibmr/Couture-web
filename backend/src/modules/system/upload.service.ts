@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import minioClient, { BUCKETS, MINIO_PUBLIC_URL, ensureBucket } from '../../config/minio.js';
+import minioClient, { MINIO_PUBLIC_URL, ensureBucket } from '../../config/minio.js';
 
 interface UploadResult {
     url: string;

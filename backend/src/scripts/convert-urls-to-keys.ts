@@ -4,6 +4,20 @@ import ProductImage from '../modules/catalog/models/product_image.model.js';
 import { extractObjectKey } from '../utils/minio-url.js';
 import { BUCKETS } from '../config/minio.js';
 
+interface ProductInstance {
+    id: string;
+    name: string;
+    featured_image: string | null;
+    update(data: Partial<ProductInstance>): Promise<ProductInstance>;
+}
+
+interface ProductImageInstance {
+    id: string;
+    product_id: string;
+    image_url: string;
+    update(data: Partial<ProductImageInstance>): Promise<ProductImageInstance>;
+}
+
 /**
  * Migration Script: Convert MinIO URLs to Object Keys
  * 
@@ -23,7 +37,8 @@ interface MigrationStats {
 /**
  * Convert a product's image URLs to object keys
  */
-async function convertProduct(product: any, stats: MigrationStats): Promise<void> {
+async function convertProduct(productData: any, stats: MigrationStats): Promise<void> {
+    const product = productData as ProductInstance;
     console.log(`\n--- Processing Product: ${product.name} (${product.id}) ---`);
 
     let updated = false;
@@ -50,7 +65,8 @@ async function convertProduct(product: any, stats: MigrationStats): Promise<void
         where: { product_id: product.id }
     });
 
-    for (const image of additionalImages) {
+    for (const imageData of additionalImages) {
+        const image = imageData as unknown as ProductImageInstance;
         const objectKey = extractObjectKey(image.image_url, BUCKETS.PRODUCTS);
 
         if (objectKey !== image.image_url) {
@@ -99,7 +115,8 @@ async function convertUrlsToKeys(): Promise<void> {
         console.log(`Found ${stats.totalProducts} products\n`);
 
         // Process each product
-        for (const product of products) {
+        for (const productData of products) {
+            const product = productData as unknown as ProductInstance;
             try {
                 await convertProduct(product, stats);
             } catch (error) {
