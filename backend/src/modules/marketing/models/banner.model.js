@@ -44,6 +44,46 @@ const Banner = sequelize.define('Banner', {
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    getterMethods: {
+        image() {
+            return this.getDataValue('image_url');
+        },
+        link() {
+            return this.getDataValue('link_url');
+        },
+        order() {
+            return this.getDataValue('sort_order');
+        },
+        isActive() {
+            return this.getDataValue('is_active');
+        },
+        start() {
+            return this.getDataValue('start_date');
+        },
+        end() {
+            return this.getDataValue('end_date');
+        },
+    },
+    setterMethods: {
+        image(value) {
+            this.setDataValue('image_url', value);
+        },
+        link(value) {
+            this.setDataValue('link_url', value);
+        },
+        order(value) {
+            this.setDataValue('sort_order', value);
+        },
+        isActive(value) {
+            this.setDataValue('is_active', value);
+        },
+        start(value) {
+            this.setDataValue('start_date', value);
+        },
+        end(value) {
+            this.setDataValue('end_date', value);
+        },
+    },
 });
 
 export default Banner;

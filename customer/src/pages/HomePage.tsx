@@ -8,6 +8,7 @@ import { Banner } from '../types';
 import { API_ENDPOINTS } from '../config/api.config';
 import api from '../services/api.service';
 import logger from '../utils/logger';
+import { getMinioUrl } from '../utils/minio-url';
 
 const HomePage: React.FC = () => {
     const heroRef = useRef<HTMLElement>(null);
@@ -40,9 +41,9 @@ const HomePage: React.FC = () => {
     }, []);
 
     // Default values if no banner is found
-    const bgImage = banner?.image_url || "/hero_image.webp";
+    const bgImage = banner?.image ? getMinioUrl(banner.image, 'banners') : "/hero_image.webp";
     const subtitle = banner?.description || "Everyday / Everywhere 2026";
-    const link = banner?.link_url || "/shop";
+    const link = banner?.link || "/shop";
 
     return (
         <div className="bg-beige-bg min-h-screen">

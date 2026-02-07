@@ -11,6 +11,8 @@ import Customer from '../identity/models/customer.model.js';
 import PaymentTransaction from '../payment/models/payment_transaction.model.js';
 import PaymentGateway from '../payment/models/payment_gateway.model.js';
 import sequelize from '../../config/database.js';
+import { getMinioUrl } from '../../utils/minio-url.js';
+import { BUCKETS } from '../../config/minio.js';
 
 
 export const createOrder = async (req, res) => {
@@ -274,9 +276,16 @@ export const getOrders = async (req, res) => {
             const orderJson = order.toJSON();
             orderJson.items = (orderJson.items || []).map(item => {
                 const product = item.ProductVariant?.Product || {};
+                let imageUrl = item.ProductVariant?.variant_image || product.image || product.featured_image || '';
+
+                // Transform to full URL
+                if (imageUrl) {
+                    imageUrl = getMinioUrl(imageUrl, BUCKETS.PRODUCTS);
+                }
+
                 return {
                     ...item,
-                    image: item.ProductVariant?.variant_image || product.image || product.featured_image || '',
+                    image: imageUrl,
                 };
             });
             return orderJson;
@@ -331,9 +340,16 @@ export const getOrderById = async (req, res) => {
         const orderJson = order.toJSON();
         orderJson.items = (orderJson.items || []).map(item => {
             const product = item.ProductVariant?.Product || {};
+            let imageUrl = item.ProductVariant?.variant_image || product.image || product.featured_image || '';
+
+            // Transform to full URL
+            if (imageUrl) {
+                imageUrl = getMinioUrl(imageUrl, BUCKETS.PRODUCTS);
+            }
+
             return {
                 ...item,
-                image: item.ProductVariant?.variant_image || product.image || product.featured_image || '',
+                image: imageUrl,
             };
         });
 
@@ -381,9 +397,16 @@ export const getOrderByIdAdmin = async (req, res) => {
         const orderJson = order.toJSON();
         orderJson.items = (orderJson.items || []).map(item => {
             const product = item.ProductVariant?.Product || {};
+            let imageUrl = item.ProductVariant?.variant_image || product.image || product.featured_image || '';
+
+            // Transform to full URL
+            if (imageUrl) {
+                imageUrl = getMinioUrl(imageUrl, BUCKETS.PRODUCTS);
+            }
+
             return {
                 ...item,
-                image: item.ProductVariant?.variant_image || product.image || product.featured_image || '',
+                image: imageUrl,
             };
         });
 

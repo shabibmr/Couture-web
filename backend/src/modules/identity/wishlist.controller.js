@@ -2,6 +2,8 @@ import Wishlist from './models/wishlist.model.js';
 import WishlistItem from './models/wishlist_item.model.js';
 import Product from '../catalog/models/product.model.js';
 import ProductImage from '../catalog/models/product_image.model.js';
+import { getMinioUrl } from '../../utils/minio-url.js';
+import { BUCKETS } from '../../config/minio.js';
 
 export const getWishlist = async (req, res) => {
     try {
@@ -31,7 +33,33 @@ export const getWishlist = async (req, res) => {
         }
 
         console.log(`[WishlistController] Wishlist found with ${wishlist.items?.length || 0} items`);
-        res.json(wishlist);
+
+        // Transform items to include full MinIO URL
+        const wishlistJson = wishlist.toJSON();
+        if (wishlistJson.items && wishlistJson.items.length > 0) {
+            wishlistJson.items = wishlistJson.items.map(item => {
+                if (item.Product) {
+                    const product = item.Product;
+
+                    if (product.featured_image) {
+                        product.featured_image = getMinioUrl(product.featured_image, BUCKETS.PRODUCTS);
+                    }
+                    if (product.image) {
+                        product.image = getMinioUrl(product.image, BUCKETS.PRODUCTS);
+                    }
+
+                    if (product.images && Array.isArray(product.images)) {
+                        product.images = product.images.map(img => ({
+                            ...img,
+                            image_url: getMinioUrl(img.image_url, BUCKETS.PRODUCTS)
+                        }));
+                    }
+                }
+                return item;
+            });
+        }
+
+        res.json(wishlistJson);
     } catch (error) {
         console.error('[WishlistController] Error fetching wishlist:', error);
         res.status(500).json({ message: 'Server error' });

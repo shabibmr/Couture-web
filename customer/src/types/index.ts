@@ -9,6 +9,7 @@ export interface Product {
     sale_price?: number; // Backend uses sale_price
     description: string;
     image: string;
+    images?: { image_url: string; sort_order: number }[]; // Array of additional images
     featured_image?: string; // Backend uses featured_image - DEPRECATED: use image
     variants?: ProductVariant[]; // Include variants with inventory info
 }
@@ -59,10 +60,17 @@ export interface User {
 }
 
 export interface Banner {
-    image_url: string;
+    id: string | number;
     title: string;
     description: string;
-    link_url: string;
+    image: string;  // Object key in MinIO (e.g., "abc123.jpg")
+    link: string;
+    order: number;
+    isActive: boolean;
+    start: string | null;
+    end: string | null;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Currency {

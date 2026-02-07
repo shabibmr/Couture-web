@@ -9,13 +9,17 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
-    "db:sync": "node scripts/sync_missing_tables.js"
+    "db:sync": "node scripts/sync_missing_tables.js",
+    "migrate:images": "tsx src/scripts/migrate-images-to-minio.ts",
+    "convert:urls": "tsx src/scripts/convert-urls-to-keys.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/multer": "^2.0.0",
+    "@types/uuid": "^10.0.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -23,10 +27,13 @@
     "firebase-admin": "^12.7.0",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
+    "minio": "^8.0.6",
+    "multer": "^2.0.2",
     "mysql2": "^3.16.1",
     "nodemailer": "^7.0.12",
     "razorpay": "^2.9.6",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

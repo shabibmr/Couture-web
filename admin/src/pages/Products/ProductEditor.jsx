@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Upload, X } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
+import ImageUpload from '../../components/ImageUpload';
+import { getMinioUrl } from '../../utils/minio-url';
 
 export default function ProductEditor() {
     const { id } = useParams();
@@ -19,7 +21,7 @@ export default function ProductEditor() {
         sizes: [],
         category: '',
         mainImage: '',
-        additionalImages: ['', '', ''], // Array for 3 additional images
+        additionalImages: [],
         is_active: true,
         is_new_arrival: false,
         is_featured: false,
@@ -56,28 +58,19 @@ export default function ProductEditor() {
                         setFormData({
                             title: product.name,
                             price: product.base_price,
-                            code: product.slug, // Using slug as code for now
+                            code: product.slug,
                             description: product.description || '',
                             sizes: product.variants?.map(v => v.Size?.name).filter(Boolean) || [],
                             category: product.category_id || '',
-                            mainImage: product.featured_image || '',
+                            // Backend sends full URLs, but if object keys are sent, construct URLs
+                            mainImage: product.featured_image ? getMinioUrl(product.featured_image, 'products') : '',
                             additionalImages: product.images && product.images.length > 0
-                                ? product.images.map(img => img.image_url)
-                                : ['', '', ''],
+                                ? product.images.map(img => getMinioUrl(img.image_url, 'products'))
+                                : [],
                             is_active: product.is_active !== undefined ? product.is_active : true,
                             is_new_arrival: product.is_new_arrival || false,
                             is_featured: product.is_featured || false,
                             sort_order: product.sort_order || 0
-                        });
-
-                        // Fill remaining slots if less than 3 images
-                        setFormData(prev => {
-                            const currentImages = prev.additionalImages;
-                            const filledImages = [...currentImages];
-                            while (filledImages.length < 3) {
-                                filledImages.push('');
-                            }
-                            return { ...prev, additionalImages: filledImages };
                         });
                     }
                     setLoading(false);
@@ -108,47 +101,7 @@ export default function ProductEditor() {
         });
     };
 
-    const handleImageUpload = (e, type, index = null) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
 
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            alert('Please upload an image file');
-            return;
-        }
-
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Image size should be less than 5MB');
-            return;
-        }
-
-        // Convert to base64 for preview (in production, upload to server/cloud)
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result;
-
-            if (type === 'main') {
-                setFormData(prev => ({ ...prev, mainImage: base64String }));
-            } else if (type === 'additional' && index !== null) {
-                setFormData(prev => {
-                    const newAdditionalImages = [...prev.additionalImages];
-                    newAdditionalImages[index] = base64String;
-                    return { ...prev, additionalImages: newAdditionalImages };
-                });
-            }
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const handleRemoveAdditionalImage = (index) => {
-        setFormData(prev => {
-            const newAdditionalImages = [...prev.additionalImages];
-            newAdditionalImages[index] = '';
-            return { ...prev, additionalImages: newAdditionalImages };
-        });
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -160,12 +113,36 @@ export default function ProductEditor() {
         }
 
         try {
-            // Prepare data to send
+            // Prepare data to send - extract object keys from URLs for storage
+            const extractObjectKey = (url) => {
+                if (!url) return '';
+                // If already an object key (no http/https), return as-is
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    return url;
+                }
+                // Extract object key from full URL
+                try {
+                    const urlObj = new URL(url);
+                    const pathParts = urlObj.pathname.split('/').filter(Boolean);
+                    // Remove bucket name (first part after domain)
+                    if (pathParts[0] === 'products') {
+                        pathParts.shift();
+                    }
+                    return pathParts.join('/');
+                } catch {
+                    return url;
+                }
+            };
+
             const dataToSend = {
-                ...formData,
-                name: formData.title, // Backend expects 'name' field
+                name: formData.title,
+                slug: formData.code,
+                description: formData.description,
                 base_price: parseFloat(formData.price),
                 category_id: formData.category,
+                mainImage: extractObjectKey(formData.mainImage),
+                additionalImages: formData.additionalImages.map(url => extractObjectKey(url)),
+                sizes: formData.sizes,
                 is_active: formData.is_active,
                 is_new_arrival: formData.is_new_arrival,
                 is_featured: formData.is_featured,
@@ -295,90 +272,24 @@ export default function ProductEditor() {
                         <h3 className="font-serif text-xl text-midnight">Product Images</h3>
 
                         {/* Main Image */}
-                        <div>
-                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-3">
-                                Main Product Image (Optional)
-                            </label>
-                            <div className="w-full aspect-[3/4] bg-stone-100 rounded-xl border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 hover:bg-stone-50 hover:border-ruvera-gold/50 cursor-pointer transition-colors relative overflow-hidden group">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => handleImageUpload(e, 'main')}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                />
-                                {formData.mainImage ? (
-                                    <>
-                                        <img src={formData.mainImage} alt="Main Preview" className="absolute inset-0 w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-0">
-                                            <p className="text-white font-medium mb-2">Change Image</p>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setFormData(prev => ({ ...prev, mainImage: '' }));
-                                                }}
-                                                className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Upload size={32} className="mb-2" />
-                                        <span className="text-sm font-medium">Upload Main Image</span>
-                                        <span className="text-xs text-stone-400 mt-1">Click or drag to upload</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
+                        <ImageUpload
+                            value={formData.mainImage}
+                            onChange={(url) => setFormData(prev => ({ ...prev, mainImage: url }))}
+                            bucket="products"
+                            folder="main"
+                            label="MAIN PRODUCT IMAGE (OPTIONAL)"
+                        />
 
                         {/* Additional Images */}
-                        <div>
-                            <label className="block text-xs font-bold uppercase tracking-widest text-stone-400 mb-3">
-                                Additional Images (Optional)
-                                <span className="ml-2 text-stone-300 normal-case font-normal">
-                                    {formData.additionalImages.filter(img => img).length} of 3
-                                </span>
-                            </label>
-                            <div className="grid grid-cols-3 gap-3">
-                                {formData.additionalImages.map((img, index) => (
-                                    <div
-                                        key={index}
-                                        className="aspect-square bg-stone-100 rounded-lg border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 hover:bg-stone-50 hover:border-ruvera-gold/50 cursor-pointer transition-colors relative overflow-hidden group"
-                                    >
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => handleImageUpload(e, 'additional', index)}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                        />
-                                        {img ? (
-                                            <>
-                                                <img src={img} alt={`Additional ${index + 1}`} className="absolute inset-0 w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleRemoveAdditionalImage(index);
-                                                        }}
-                                                        className="p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                                                    >
-                                                        <X size={14} />
-                                                    </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Upload size={20} className="mb-1" />
-                                                <span className="text-xs">Image {index + 1}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <ImageUpload
+                            value={formData.additionalImages}
+                            onChange={(urls) => setFormData(prev => ({ ...prev, additionalImages: urls }))}
+                            bucket="products"
+                            folder="additional"
+                            label="ADDITIONAL IMAGES (OPTIONAL)"
+                            multiple
+                            maxFiles={3}
+                        />
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 space-y-4">

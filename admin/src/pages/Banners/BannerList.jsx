@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search, Plus, Edit2, Trash2, Image, GripVertical } from 'lucide-react';
 
 import api from '../../services/api';
+import { getMinioUrl } from '../../utils/minio-url';
 
 export default function BannerList() {
     const [banners, setBanners] = useState([]);
@@ -62,8 +63,8 @@ export default function BannerList() {
                             </div>
 
                             <div className="w-48 h-24 bg-stone-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                                <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
-                                {!banner.active && (
+                                <img src={getMinioUrl(banner.image, 'banners')} alt={banner.title} className="w-full h-full object-cover" />
+                                {!banner.isActive && (
                                     <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
                                         <span className="text-xs font-bold uppercase tracking-wider text-stone-600 bg-white px-2 py-1 rounded shadow-sm">Inactive</span>
                                     </div>

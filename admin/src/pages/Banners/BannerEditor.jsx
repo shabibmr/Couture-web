@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Image, Upload } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
+import ImageUpload from '../../components/ImageUpload';
 
 import api from '../../services/api';
 
@@ -25,13 +26,26 @@ export default function BannerEditor() {
         if (!isNew) {
             const fetchBanner = async () => {
                 try {
-                    // Using get collection and find for same reason as coupons (saving backend overhead for MVP)
-                    const response = await api.get('/banners');
-                    const banner = response.data.find(b => b.id === id);
-                    if (banner) setFormData(banner);
+                    const response = await api.get(`/banners/${id}`);
+                    const banner = response.data;
+
+                    // Format dates for date inputs (YYYY-MM-DD)
+                    const formattedBanner = {
+                        title: banner.title || '',
+                        description: banner.description || '',
+                        link: banner.link || '',
+                        image: banner.image || '',
+                        start: banner.start ? new Date(banner.start).toISOString().split('T')[0] : '',
+                        end: banner.end ? new Date(banner.end).toISOString().split('T')[0] : '',
+                        order: banner.order || 0,
+                        isActive: banner.isActive !== undefined ? banner.isActive : true
+                    };
+                    setFormData(formattedBanner);
                     setLoading(false);
                 } catch (error) {
-                    console.error(error);
+                    console.error('Error fetching banner:', error);
+                    alert('Failed to load banner');
+                    setLoading(false);
                 }
             };
             fetchBanner();
@@ -41,14 +55,23 @@ export default function BannerEditor() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Prepare data for submission - convert empty strings to null for dates
+            const submitData = {
+                ...formData,
+                start: formData.start || null,
+                end: formData.end || null,
+                order: parseInt(formData.order) || 0
+            };
+
             if (isNew) {
-                await api.post('/banners', formData);
+                await api.post('/banners', submitData);
             } else {
-                await api.put(`/banners/${id}`, formData);
+                await api.put(`/banners/${id}`, submitData);
             }
             navigate('/banners');
         } catch (error) {
             console.error('Error saving banner:', error);
+            alert('Failed to save banner. Please check the console for details.');
         }
     };
 
@@ -69,26 +92,16 @@ export default function BannerEditor() {
             <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-stone-100 p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="col-span-full">
-                        <label className="text-sm font-medium text-stone-600 block mb-2">Banner Image</label>
-                        <div className="border-2 border-dashed border-stone-200 rounded-xl p-8 text-center hover:bg-stone-50 transition-colors cursor-pointer group">
-                            {formData.image ? (
-                                <div className="relative">
-                                    <img src={formData.image} alt="Preview" className="max-h-64 mx-auto rounded-lg shadow-sm" />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                        <span className="text-white font-medium flex items-center gap-2">
-                                            <Upload size={20} /> Change Image
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="py-8">
-                                    <Image size={48} className="mx-auto text-stone-300 mb-4" />
-                                    <p className="text-stone-500 font-medium">Click to upload image</p>
-                                    <p className="text-stone-400 text-sm mt-1">Recommended size: 1920x600px</p>
-                                </div>
-                            )}
-                            <input type="file" className="hidden" />
-                        </div>
+                        <ImageUpload
+                            value={formData.image}
+                            onChange={(url) => {
+                                console.log('🎯 BannerEditor: Image changed to:', url);
+                                setFormData({ ...formData, image: url });
+                            }}
+                            bucket="banners"
+                            label="Banner Image"
+                            required
+                        />
                     </div>
 
                     <div className="space-y-2">

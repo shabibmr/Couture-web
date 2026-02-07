@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: couture-minio
+    ports:
+      - "9000:9000"  # MinIO API
+      - "9001:9001"  # MinIO Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - couture-network
+
+  # MinIO Client - for initial bucket setup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: couture-minio-setup
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/products --ignore-existing;
+      /usr/bin/mc mb myminio/banners --ignore-existing;
+      /usr/bin/mc mb myminio/general --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/products;
+      /usr/bin/mc anonymous set download myminio/banners;
+      /usr/bin/mc anonymous set download myminio/general;
+      exit 0;
+      "
+    networks:
+      - couture-network
+
+volumes:
+  minio_data:
+    driver: local
+
+networks:
+  couture-network:
+    driver: bridge

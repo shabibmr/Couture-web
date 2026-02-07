@@ -33,6 +33,7 @@ const ProductDetail: React.FC = () => {
     const { requireAuth } = useAuthGuard();
     const [selectedSize, setSelectedSize] = useState<string>('M');
     const [product, setProduct] = useState<Product | null>(null);
+    const [activeImage, setActiveImage] = useState<string>('');
     const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -76,9 +77,11 @@ const ProductDetail: React.FC = () => {
                 const response = await api.get(endpoint);
                 const normalizedProduct = {
                     ...response.data,
-                    image: response.data.image || response.data.featured_image || ''
+                    image: response.data.image || response.data.featured_image || '',
+                    images: response.data.images || []
                 };
                 setProduct(normalizedProduct);
+                setActiveImage(normalizedProduct.image);
 
                 // Fetch related products (same category)
                 if (response.data.category) {
@@ -128,7 +131,8 @@ const ProductDetail: React.FC = () => {
 
     // Map backend fields
     const displayTitle = product.name || product.title;
-    const displayImage = product.image;
+    // displayImage is now controlled by state activeImage
+    const displayImage = activeImage || product.image;
     const displayPrice = product.sale_price ? formatPrice(product.sale_price) : (product.base_price ? formatPrice(product.base_price) : (typeof product.price === 'number' ? formatPrice(product.price) : product.price));
     const displayCode = product.code || product.slug || 'N/A';
     const displayDescription = product.description || 'No description available.';
@@ -166,16 +170,65 @@ const ProductDetail: React.FC = () => {
                         animate={{ opacity: 1, x: 0 }}
                         className="w-full h-full bg-stone-200 overflow-hidden relative shadow-2xl"
                     >
-                        <picture className="w-full h-full block">
-                            <source srcSet={displayImage?.replace(/\.(png|jpg|jpeg)$/i, '.webp')} type="image/webp" />
-                            <img
-                                src={displayImage}
-                                alt={displayTitle}
-                                className="w-full h-full object-cover"
-                            />
-                        </picture>
+                        {/* 
+                            Changed from <picture> with .webp replacement to simple <img> 
+                            because .replace(/\.(png|jpg|jpeg)$/i, '.webp') is fragile with signed URLs 
+                            or URLs that don't end in those extensions.
+                        */}
+                        <img
+                            src={displayImage}
+                            alt={displayTitle}
+                            className="w-full h-full object-cover"
+                            key={displayImage} // Add key to force re-render on change
+                        />
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
                     </motion.div>
+
+                    {/* Thumbnail Gallery */}
+                    {product.images && product.images.length > 0 && (
+                        <div className="flex gap-4 mt-6 overflow-x-auto pb-2">
+                            {/* Main Image Thumbnail */}
+                            <button
+                                onClick={() => {
+                                    // Ensure we set a string
+                                    if (product.image) setActiveImage(product.image);
+                                }}
+                                className={`w-20 h-20 flex-shrink-0 border-2 transition-all ${activeImage === product.image ? 'border-stone-900 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'
+                                    }`}
+                            >
+                                <img
+                                    src={product.image}
+                                    alt="Main view"
+                                    className="w-full h-full object-cover"
+                                />
+                            </button>
+
+                            {/* Additional Images Thumbnails */}
+                            {product.images.map((img, idx) => {
+                                // Defensive check for image_url
+                                const thumbUrl = img.image_url;
+                                if (!thumbUrl) return null;
+
+                                return (
+                                    <button
+                                        key={thumbUrl || idx}
+                                        onClick={() => {
+                                            setActiveImage(thumbUrl);
+                                            logger.info('Selected active image', { url: thumbUrl });
+                                        }}
+                                        className={`w-20 h-20 flex-shrink-0 border-2 transition-all ${activeImage === thumbUrl ? 'border-stone-900 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'
+                                            }`}
+                                    >
+                                        <img
+                                            src={thumbUrl}
+                                            alt={`View ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* Product Bio */}
                     <div className="flex flex-col justify-center">

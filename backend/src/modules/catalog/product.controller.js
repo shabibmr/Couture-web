@@ -9,6 +9,31 @@ import Review from './models/review.model.js';
 import Customer from '../identity/models/customer.model.js';
 import Inventory from '../inventory/models/inventory.model.js';
 import { Op } from 'sequelize';
+import { getMinioUrl } from '../../utils/minio-url.js';
+import { BUCKETS } from '../../config/minio.js';
+
+/**
+ * Transform product data to include full MinIO URLs
+ * Converts object keys to full URLs for frontend consumption
+ */
+const transformProductImages = (product) => {
+    const productJson = product.toJSON ? product.toJSON() : product;
+
+    // Transform featured_image
+    if (productJson.featured_image) {
+        productJson.featured_image = getMinioUrl(productJson.featured_image, BUCKETS.PRODUCTS);
+    }
+
+    // Transform additional images
+    if (productJson.images && Array.isArray(productJson.images)) {
+        productJson.images = productJson.images.map(img => ({
+            ...img,
+            image_url: getMinioUrl(img.image_url, BUCKETS.PRODUCTS)
+        }));
+    }
+
+    return productJson;
+};
 
 export const getAllProducts = async (req, res) => {
     try {
@@ -45,7 +70,13 @@ export const getAllProducts = async (req, res) => {
         }
 
         const include = [
-            { model: ProductImage, as: 'images', attributes: ['image_url', 'sort_order'] },
+            {
+                model: ProductImage,
+                as: 'images',
+                attributes: ['image_url', 'sort_order'],
+                separate: true,
+                order: [['sort_order', 'ASC']]
+            },
             { model: Category, as: 'Category', attributes: ['name', 'slug'] },
             {
                 model: ProductVariant,
@@ -83,11 +114,14 @@ export const getAllProducts = async (req, res) => {
             distinct: true,
         });
 
+        // Transform products to include full MinIO URLs
+        const transformedProducts = products.rows.map(transformProductImages);
+
         res.json({
             total: products.count,
             pages: Math.ceil(products.count / limit),
             currentPage: parseInt(page),
-            data: products.rows,
+            data: transformedProducts,
         });
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -100,7 +134,13 @@ export const getProductById = async (req, res) => {
         const { id } = req.params;
         const product = await Product.findByPk(id, {
             include: [
-                { model: ProductImage, as: 'images', attributes: ['image_url', 'sort_order'] },
+                {
+                    model: ProductImage,
+                    as: 'images',
+                    attributes: ['image_url', 'sort_order'],
+                    separate: true,
+                    order: [['sort_order', 'ASC']]
+                },
                 {
                     model: ProductVariant,
                     as: 'variants',
@@ -119,7 +159,7 @@ export const getProductById = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        res.json(product);
+        res.json(transformProductImages(product));
     } catch (error) {
         console.error('Error fetching product:', error);
         res.status(500).json({ message: 'Server error' });
@@ -132,7 +172,13 @@ export const getProductBySlug = async (req, res) => {
         const product = await Product.findOne({
             where: { slug, is_active: true },
             include: [
-                { model: ProductImage, as: 'images', attributes: ['image_url', 'sort_order'] },
+                {
+                    model: ProductImage,
+                    as: 'images',
+                    attributes: ['image_url', 'sort_order'],
+                    separate: true,
+                    order: [['sort_order', 'ASC']]
+                },
                 {
                     model: ProductVariant,
                     as: 'variants',
@@ -151,7 +197,7 @@ export const getProductBySlug = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        res.json(product);
+        res.json(transformProductImages(product));
     } catch (error) {
         console.error('Error fetching product:', error);
         res.status(500).json({ message: 'Server error' });

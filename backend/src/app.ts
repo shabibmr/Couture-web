@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import sequelize from './config/database.js';
+import { initializeBuckets } from './config/minio.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ import bannerRoutes from './modules/marketing/banner.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import settingsRoutes from './modules/system/settings.routes.js';
 import notificationRoutes from './modules/notification/notification.routes.js';
+import uploadRoutes from './modules/system/upload.routes.js';
 
 // Middleware - CORS configuration
 app.use(cors({
@@ -64,6 +66,7 @@ app.use('/banners', bannerRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/upload', uploadRoutes);
 
 // Health Check
 app.get('/health', (_req: Request, res: Response) => {
@@ -80,6 +83,10 @@ const startServer = async (): Promise<void> => {
         // await sequelize.sync({ alter: true }); 
         await sequelize.sync();
         console.log('Database synced.');
+
+        // Initialize MinIO buckets
+        await initializeBuckets();
+        console.log('MinIO buckets initialized.');
 
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);

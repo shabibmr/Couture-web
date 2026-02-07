@@ -5,6 +5,8 @@ import Product from '../catalog/models/product.model.js';
 import ProductImage from '../catalog/models/product_image.model.js';
 import Inventory from '../inventory/models/inventory.model.js';
 import Size from '../catalog/models/size.model.js';
+import { getMinioUrl } from '../../utils/minio-url.js';
+import { BUCKETS } from '../../config/minio.js';
 
 export const getCart = async (req, res) => {
     try {
@@ -36,7 +38,34 @@ export const getCart = async (req, res) => {
             return res.json({ ...cart.toJSON(), items: [] });
         }
 
-        res.json(cart);
+        // Transform cart items to include full MinIO URL for images
+        const cartJson = cart.toJSON();
+        if (cartJson.items && cartJson.items.length > 0) {
+            cartJson.items = cartJson.items.map(item => {
+                if (item.ProductVariant && item.ProductVariant.Product) {
+                    const product = item.ProductVariant.Product;
+
+                    // Transform main image/featured_image
+                    if (product.featured_image) {
+                        product.featured_image = getMinioUrl(product.featured_image, BUCKETS.PRODUCTS);
+                    }
+                    if (product.image) {
+                        product.image = getMinioUrl(product.image, BUCKETS.PRODUCTS);
+                    }
+
+                    // Transform additional images if present
+                    if (product.images && Array.isArray(product.images)) {
+                        product.images = product.images.map(img => ({
+                            ...img,
+                            image_url: getMinioUrl(img.image_url, BUCKETS.PRODUCTS)
+                        }));
+                    }
+                }
+                return item;
+            });
+        }
+
+        res.json(cartJson);
     } catch (error) {
         console.error('Error fetching cart:', error);
         res.status(500).json({ message: 'Server error' });

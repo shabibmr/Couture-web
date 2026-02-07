@@ -22,6 +22,11 @@ import ContactPage from './pages/ContactPage';
 import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 import SearchResultsPage from './pages/SearchResultsPage';
+import ShippingReturnsPage from './pages/ShippingReturnsPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+
+import ScrollToTop from './components/ScrollToTop';
 
 // Navigation tracker component
 const NavigationTracker: React.FC = () => {
@@ -60,6 +65,7 @@ const App: React.FC = () => {
 
         {!loading && (
           <BrowserRouter>
+            <ScrollToTop />
             <NavigationTracker />
             <Routes>
               <Route path="/" element={<Layout />}>
@@ -78,6 +84,9 @@ const App: React.FC = () => {
                 <Route path="about" element={<AboutPage />} />
                 <Route path="faq" element={<FAQPage />} />
                 <Route path="search" element={<SearchResultsPage />} />
+                <Route path="shipping" element={<ShippingReturnsPage />} />
+                <Route path="terms" element={<TermsPage />} />
+                <Route path="privacy" element={<PrivacyPage />} />
               </Route>
 
               {/* Standalone Pages (No Navbar/Footer) */}

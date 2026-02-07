@@ -14,6 +14,7 @@ import {
     PhoneAuthProvider,
     linkWithCredential
 } from 'firebase/auth';
+import userService, { CreateAddressData } from '../services/userService';
 
 interface Address {
     id: string;
@@ -77,6 +78,39 @@ const UserProfilePage: React.FC = () => {
         };
     }, []);
 
+    // Fetch backend data
+    useEffect(() => {
+        const fetchBackendData = async () => {
+            if (!user) return;
+            try {
+                // 1. Profile
+                const profile = await userService.getProfile();
+                if (profile) {
+                    if (profile.phone) setPhone(profile.phone);
+                }
+
+                // 2. Addresses
+                const backendAddresses = await userService.getAddresses();
+                const mappedAddresses: Address[] = backendAddresses.map(addr => ({
+                    id: addr.id,
+                    name: addr.full_name,
+                    phone: addr.phone,
+                    addressLine1: addr.address_line1,
+                    addressLine2: addr.address_line2,
+                    city: addr.city,
+                    state: addr.state,
+                    pincode: addr.postal_code,
+                    isDefault: addr.is_default_shipping
+                }));
+                setAddresses(mappedAddresses);
+            } catch (error) {
+                logger.error('Error fetching backend data', { error });
+            }
+        };
+
+        fetchBackendData();
+    }, [user]);
+
     const handleSendEmailVerification = async () => {
         if (auth.currentUser) {
             try {
@@ -103,6 +137,17 @@ const UserProfilePage: React.FC = () => {
                 await updateEmail(auth.currentUser, email);
                 await handleSendEmailVerification();
             }
+
+            // Update backend profile
+            const nameParts = displayName.trim().split(' ');
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(' ');
+
+            await userService.updateProfile({
+                first_name: firstName,
+                last_name: lastName,
+                phone: phone
+            });
 
             alert('Profile updated successfully!');
             setIsEditingProfile(false);
@@ -154,47 +199,81 @@ const UserProfilePage: React.FC = () => {
     };
 
     // Address management functions
-    const handleAddAddress = () => {
+    const handleAddAddress = async () => {
         if (!newAddress.name || !newAddress.phone || !newAddress.addressLine1 || !newAddress.city || !newAddress.state || !newAddress.pincode) {
             alert('Please fill all required fields');
             return;
         }
 
-        const address: Address = {
-            id: Date.now().toString(),
-            name: newAddress.name!,
-            phone: newAddress.phone!,
-            addressLine1: newAddress.addressLine1!,
-            addressLine2: newAddress.addressLine2,
-            city: newAddress.city!,
-            state: newAddress.state!,
-            pincode: newAddress.pincode!,
-            isDefault: newAddress.isDefault || false
-        };
+        try {
+            const payload: CreateAddressData = {
+                full_name: newAddress.name,
+                phone: newAddress.phone,
+                address_line1: newAddress.addressLine1,
+                address_line2: newAddress.addressLine2,
+                city: newAddress.city,
+                state: newAddress.state,
+                postal_code: newAddress.pincode,
+                is_default_shipping: newAddress.isDefault,
+                is_default_billing: newAddress.isDefault
+            };
 
-        setAddresses([...addresses, address]);
-        setIsAddingAddress(false);
-        setNewAddress({
-            name: '',
-            phone: '',
-            addressLine1: '',
-            addressLine2: '',
-            city: '',
-            state: '',
-            pincode: '',
-            isDefault: false
-        });
+            const savedAddress = await userService.addAddress(payload);
+
+            const address: Address = {
+                id: savedAddress.id,
+                name: savedAddress.full_name,
+                phone: savedAddress.phone,
+                addressLine1: savedAddress.address_line1,
+                addressLine2: savedAddress.address_line2,
+                city: savedAddress.city,
+                state: savedAddress.state,
+                pincode: savedAddress.postal_code,
+                isDefault: savedAddress.is_default_shipping
+            };
+
+            setAddresses([address, ...addresses]);
+            setIsAddingAddress(false);
+            setNewAddress({
+                name: '',
+                phone: '',
+                addressLine1: '',
+                addressLine2: '',
+                city: '',
+                state: '',
+                pincode: '',
+                isDefault: false
+            });
+        } catch (error: any) {
+            logger.error('Error adding address', { error });
+            alert(`Failed to save address: ${error.message}`);
+        }
     };
 
-    const handleDeleteAddress = (id: string) => {
-        setAddresses(addresses.filter(addr => addr.id !== id));
+
+    const handleDeleteAddress = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this address?')) return;
+        try {
+            await userService.deleteAddress(id);
+            setAddresses(addresses.filter(addr => addr.id !== id));
+        } catch (error: any) {
+            alert(`Failed to delete address: ${error.message}`);
+        }
     };
 
-    const handleSetDefaultAddress = (id: string) => {
-        setAddresses(addresses.map(addr => ({
-            ...addr,
-            isDefault: addr.id === id
-        })));
+    const handleSetDefaultAddress = async (id: string) => {
+        try {
+            await userService.updateAddress(id, {
+                is_default_shipping: true,
+                is_default_billing: true
+            });
+            setAddresses(addresses.map(addr => ({
+                ...addr,
+                isDefault: addr.id === id
+            })));
+        } catch (error: any) {
+            alert(`Failed to update default address: ${error.message}`);
+        }
     };
 
     const handleLogout = async () => {
