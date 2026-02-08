@@ -49,8 +49,8 @@ const HomePage: React.FC = () => {
         <div className="bg-beige-bg min-h-screen">
             <SEO
                 title="Home"
-                description="Discover the latest in everyday elegance with Ruvera Couture. Shop our exclusive collection."
-                keywords="fashion, couture, everyday elegance, clothing"
+                description="Discover the latest in everyday elegance with Ruvera Couture. Shop our exclusive collection of daily wear and women's fashion."
+                keywords="daily wear, women's fashion, everyday elegance, clothing, ruvera couture, designer kurtis"
             />
             {/* Hero Section - Split Layout */}
             <section ref={heroRef} className="relative min-h-screen grid grid-cols-1 md:grid-cols-2 pt-20 md:pt-0">

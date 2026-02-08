@@ -154,8 +154,8 @@ const ShopPage: React.FC = () => {
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
             <SEO
                 title={isNewArrival ? 'New Arrivals' : (selectedCategoryName ? `${selectedCategoryName} Collection` : 'Shop All')}
-                description="Explore our exclusive collection of high-fashion pieces. Find your perfect style at Ruvera Couture."
-                keywords={`shop, fashion, ${selectedCategoryName || 'couture'}, luxury, clothing`}
+                description="Explore our exclusive collection of stylish daily wear and high-fashion pieces. Find your perfect style at Ruvera Couture."
+                keywords={`shop, daily wear, women's fashion, ${selectedCategoryName || 'casual wear'}, clothing, ruvera couture`}
             />
             <div className="max-w-[1400px] mx-auto">
 

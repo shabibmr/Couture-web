@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Host: https://ruveracouture.com
+Sitemap: https://ruveracouture.com/sitemap.xml

@@ -618,3 +618,78 @@ export const deleteProductVariant = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+export const getProductMetadata = async (req, res) => {
+    try {
+        const { idOrSlug } = req.params;
+        let product;
+
+        // Check if it's a UUID
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug)) {
+            product = await Product.findByPk(idOrSlug, {
+                include: [{ model: ProductImage, as: 'images' }]
+            });
+        } else {
+            product = await Product.findOne({
+                where: { slug: idOrSlug },
+                include: [{ model: ProductImage, as: 'images' }]
+            });
+        }
+
+        if (!product) {
+            return res.status(404).send('Product not found');
+        }
+
+        const productJson = transformProductImages(product);
+        // Ensure we have an absolute URL for the image
+        let imageUrl = productJson.featured_image || (productJson.images && productJson.images.length > 0 ? productJson.images[0].image_url : '');
+
+        // If image URL is relative (though transformProductImages should handle it), make it absolute if possible or leave it
+        // The transformProductImages uses getMinioUrl which returns a full URL.
+
+        const title = product.name || product.title;
+        const description = product.description || '';
+        const price = product.sale_price || product.base_price || product.price;
+        const productUrl = `https://ruveracouture.com/product/${product.slug || product.id}`;
+
+        const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title} | Ruvera Couture</title>
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="product">
+    <meta property="og:url" content="${productUrl}">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description.substring(0, 200)}...">
+    <meta property="og:image" content="${imageUrl}">
+    <meta property="product:price:amount" content="${price}">
+    <meta property="product:price:currency" content="INR">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="${productUrl}">
+    <meta property="twitter:title" content="${title}">
+    <meta property="twitter:description" content="${description.substring(0, 200)}...">
+    <meta property="twitter:image" content="${imageUrl}">
+</head>
+<body>
+    <h1>${title}</h1>
+    <img src="${imageUrl}" alt="${title}" style="max-width: 100%;">
+    <p>${description}</p>
+    <p>Price: ₹${price}</p>
+    <script>window.location.href = "${productUrl}";</script>
+</body>
+</html>
+        `;
+
+        res.send(html);
+
+    } catch (error) {
+        console.error('Error fetching product metadata:', error);
+        res.status(500).send('Server error');
+    }
+};

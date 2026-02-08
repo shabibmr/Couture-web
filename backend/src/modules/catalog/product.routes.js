@@ -14,7 +14,8 @@ import {
     getProductReviews,
     createProductReview,
     addProductVariant,
-    deleteProductVariant
+    deleteProductVariant,
+    getProductMetadata
 } from './product.controller.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 
@@ -27,6 +28,7 @@ router.get('/sizes', getSizes);
 router.post('/categories', createCategory);
 router.put('/categories/:id', updateCategory);
 router.delete('/categories/:id', deleteCategory);
+router.get('/metadata/:idOrSlug', getProductMetadata);
 router.get('/id/:id', getProductById);
 router.get('/:slug', getProductBySlug);
 router.post('/', createProduct);

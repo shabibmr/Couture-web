@@ -161,6 +161,7 @@ const ProductDetail: React.FC = () => {
                 description={displayDescription.substring(0, 160)}
                 image={displayImage}
                 type="product"
+                keywords={[displayTitle, 'Daily Wear', 'Women Fashion', 'Ruvera Couture', (product as any).category].filter(Boolean).join(', ')}
             />
             <div className="container mx-auto px-6 pb-20">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-24 md:pt-32">
