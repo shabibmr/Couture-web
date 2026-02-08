@@ -7,6 +7,15 @@ import api from '../services/api.service';
 import { API_ENDPOINTS } from '../config/api.config';
 
 interface ContactSettings {
+    // Existing DB fields
+    email?: string;
+    phone?: string;
+    address_line?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+
+    // Seeded/Fallback fields
     contact_email?: string;
     contact_phone?: string;
     contact_whatsapp?: string;
@@ -66,10 +75,15 @@ const ContactPage: React.FC = () => {
         }, 1500);
     };
 
-    const contactEmail = settings.contact_email || 'info@ruveracouture.com';
-    const contactPhone = settings.contact_phone || '+91 98955 58511';
-    const contactWhatsapp = settings.contact_whatsapp || '+91 98955 58533';
-    const contactAddress = settings.contact_address || '123 Fashion Avenue\nMumbai, Maharashtra 400001\nIndia';
+    // Prioritize existing DB fields over seeded contact_* fields
+    const contactEmail = settings.email || settings.contact_email || 'info@ruveracouture.com';
+    const contactPhone = settings.phone || settings.contact_phone || '+91 98955 58511';
+    const contactWhatsapp = settings.contact_whatsapp || settings.phone || '+91 98955 58533';
+
+    // Construct address from components if available
+    const contactAddress = (settings.address_line || settings.city)
+        ? `${settings.address_line || ''}\n${settings.city || ''}, ${settings.state || ''} ${settings.zip || ''}\nIndia`.trim()
+        : (settings.contact_address || '123 Fashion Avenue\nMumbai, Maharashtra 400001\nIndia');
 
     // Helper to format whatsapp number for link (remove spaces and +)
     const whatsappLink = `https://wa.me/${contactWhatsapp.replace(/\D/g, '')}`;
