@@ -14,6 +14,9 @@ interface ContactSettings {
     city?: string;
     state?: string;
     zip?: string;
+    instagram_url?: string;
+    facebook_url?: string;
+    twitter_url?: string;
 
     // Seeded/Fallback fields
     contact_email?: string;
@@ -79,6 +82,11 @@ const ContactPage: React.FC = () => {
     const contactEmail = settings.email || settings.contact_email || 'info@ruveracouture.com';
     const contactPhone = settings.phone || settings.contact_phone || '+91 98955 58511';
     const contactWhatsapp = settings.contact_whatsapp || settings.phone || '+91 98955 58533';
+
+    // Social Links
+    const instagramUrl = settings.instagram_url || settings.social_instagram;
+    const facebookUrl = settings.facebook_url || settings.social_facebook;
+    const twitterUrl = settings.twitter_url || settings.social_twitter;
 
     // Construct address from components if available
     const contactAddress = (settings.address_line || settings.city)
@@ -278,9 +286,9 @@ const ContactPage: React.FC = () => {
                         <div className="bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                             <h2 className="font-serif text-2xl text-midnight mb-6">Follow Us</h2>
                             <div className="flex gap-4">
-                                {settings.social_instagram && (
+                                {instagramUrl && (
                                     <a
-                                        href={settings.social_instagram}
+                                        href={instagramUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
@@ -288,9 +296,9 @@ const ContactPage: React.FC = () => {
                                         <Instagram size={20} />
                                     </a>
                                 )}
-                                {settings.social_facebook && (
+                                {facebookUrl && (
                                     <a
-                                        href={settings.social_facebook}
+                                        href={facebookUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
@@ -298,9 +306,9 @@ const ContactPage: React.FC = () => {
                                         <Facebook size={20} />
                                     </a>
                                 )}
-                                {settings.social_twitter && (
+                                {twitterUrl && (
                                     <a
-                                        href={settings.social_twitter}
+                                        href={twitterUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
