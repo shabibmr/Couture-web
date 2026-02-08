@@ -1,8 +1,21 @@
-import React, { useState, FormEvent, ChangeEvent } from 'react';
+import React, { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Send, Instagram, Facebook, Twitter, MessageCircle } from 'lucide-react';
 import SEO from '../components/SEO';
 import logger from '../utils/logger';
+import api from '../services/api.service';
+import { API_ENDPOINTS } from '../config/api.config';
+
+interface ContactSettings {
+    contact_email?: string;
+    contact_phone?: string;
+    contact_whatsapp?: string;
+    contact_address?: string;
+    social_instagram?: string;
+    social_facebook?: string;
+    social_twitter?: string;
+    [key: string]: string | undefined;
+}
 
 const ContactPage: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -13,10 +26,24 @@ const ContactPage: React.FC = () => {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [settings, setSettings] = useState<ContactSettings>({});
+    const [loadingSettings, setLoadingSettings] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         logger.info('Page Mounted: ContactPage');
+        fetchSettings();
     }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const response = await api.get(API_ENDPOINTS.SETTINGS);
+            setSettings(response.data);
+            setLoadingSettings(false);
+        } catch (error) {
+            logger.error('Error fetching settings:', error);
+            setLoadingSettings(false);
+        }
+    };
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -38,6 +65,14 @@ const ContactPage: React.FC = () => {
             setTimeout(() => setSubmitted(false), 5000);
         }, 1500);
     };
+
+    const contactEmail = settings.contact_email || 'info@ruveracouture.com';
+    const contactPhone = settings.contact_phone || '+91 98955 58511';
+    const contactWhatsapp = settings.contact_whatsapp || '+91 98955 58533';
+    const contactAddress = settings.contact_address || '123 Fashion Avenue\nMumbai, Maharashtra 400001\nIndia';
+
+    // Helper to format whatsapp number for link (remove spaces and +)
+    const whatsappLink = `https://wa.me/${contactWhatsapp.replace(/\D/g, '')}`;
 
     return (
         <div className="bg-beige-bg min-h-screen pt-32 pb-20 px-6">
@@ -170,8 +205,8 @@ const ContactPage: React.FC = () => {
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-medium text-midnight uppercase tracking-widest mb-1">Email</h3>
-                                        <a href="mailto:info@ruveracouture.com" className="text-stone-600 hover:text-ruvera-gold transition-colors">
-                                            info@ruveracouture.com
+                                        <a href={`mailto:${contactEmail}`} className="text-stone-600 hover:text-ruvera-gold transition-colors">
+                                            {contactEmail}
                                         </a>
                                     </div>
                                 </div>
@@ -182,8 +217,8 @@ const ContactPage: React.FC = () => {
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-medium text-midnight uppercase tracking-widest mb-1">Phone</h3>
-                                        <a href="tel:+919895558511" className="text-stone-600 hover:text-ruvera-gold transition-colors">
-                                            +91 98955 58511
+                                        <a href={`tel:${contactPhone.replace(/\s/g, '')}`} className="text-stone-600 hover:text-ruvera-gold transition-colors">
+                                            {contactPhone}
                                         </a>
                                     </div>
                                 </div>
@@ -194,8 +229,8 @@ const ContactPage: React.FC = () => {
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-medium text-midnight uppercase tracking-widest mb-1">WhatsApp</h3>
-                                        <a href="https://wa.me/919895558533" target="_blank" rel="noopener noreferrer" className="text-stone-600 hover:text-ruvera-gold transition-colors">
-                                            +91 98955 58533
+                                        <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="text-stone-600 hover:text-ruvera-gold transition-colors">
+                                            {contactWhatsapp}
                                         </a>
                                     </div>
                                 </div>
@@ -206,10 +241,8 @@ const ContactPage: React.FC = () => {
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-medium text-midnight uppercase tracking-widest mb-1">Address</h3>
-                                        <p className="text-stone-600">
-                                            123 Fashion Avenue<br />
-                                            Mumbai, Maharashtra 400001<br />
-                                            India
+                                        <p className="text-stone-600 whitespace-pre-line">
+                                            {contactAddress}
                                         </p>
                                     </div>
                                 </div>
@@ -231,30 +264,36 @@ const ContactPage: React.FC = () => {
                         <div className="bg-white p-8 rounded-xl shadow-sm border border-stone-100">
                             <h2 className="font-serif text-2xl text-midnight mb-6">Follow Us</h2>
                             <div className="flex gap-4">
-                                <a
-                                    href="https://instagram.com/ruveracouture"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
-                                >
-                                    <Instagram size={20} />
-                                </a>
-                                <a
-                                    href="https://facebook.com/ruveracouture"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
-                                >
-                                    <Facebook size={20} />
-                                </a>
-                                <a
-                                    href="https://twitter.com/ruveracouture"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
-                                >
-                                    <Twitter size={20} />
-                                </a>
+                                {settings.social_instagram && (
+                                    <a
+                                        href={settings.social_instagram}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
+                                    >
+                                        <Instagram size={20} />
+                                    </a>
+                                )}
+                                {settings.social_facebook && (
+                                    <a
+                                        href={settings.social_facebook}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
+                                    >
+                                        <Facebook size={20} />
+                                    </a>
+                                )}
+                                {settings.social_twitter && (
+                                    <a
+                                        href={settings.social_twitter}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center hover:bg-ruvera-gold hover:text-white transition-all duration-300"
+                                    >
+                                        <Twitter size={20} />
+                                    </a>
+                                )}
                             </div>
                         </div>
                     </motion.div>
