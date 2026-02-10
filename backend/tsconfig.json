@@ -27,7 +27,8 @@
         "checkJs": false,
         /* Node.js specific */
         "types": [
-            "node"
+            "node",
+            "jest"
         ]
     },
     "include": [

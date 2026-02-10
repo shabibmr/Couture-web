@@ -136,7 +136,16 @@ const CartPage: React.FC = () => {
         // Check authentication before proceeding to checkout
         if (!requireAuth({ returnTo: '/checkout' })) return;
 
-        navigate('/checkout', { state: { subtotal, tax, discount, shippingFee, total } });
+        navigate('/checkout', {
+            state: {
+                subtotal,
+                tax,
+                discount,
+                shippingFee,
+                total,
+                couponCode: appliedCoupon
+            }
+        });
     };
 
     return (

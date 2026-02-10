@@ -1,0 +1,14 @@
+
+> backend@1.0.0 dev
+> tsx watch src/app.ts
+
+[dotenv@17.2.3] injecting env (25) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+Firebase Admin initializing with Project ID: ruvera-a98ef
+[Razorpay] Initialized in LIVE mode
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+Database synced.
+✓ All MinIO buckets initialized
+MinIO buckets initialized.
+Server is running on port 5000

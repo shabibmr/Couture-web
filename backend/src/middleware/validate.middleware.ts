@@ -25,7 +25,17 @@ export const validate = (schema: Joi.ObjectSchema, property: 'body' | 'params' |
         }
 
         // Replace request data with validated and sanitized data
-        req[property] = value;
+        // Note: req.query is read-only, so we need to use Object.defineProperty
+        if (property === 'query') {
+            Object.defineProperty(req, 'query', {
+                value,
+                writable: true,
+                enumerable: true,
+                configurable: true
+            });
+        } else {
+            req[property] = value;
+        }
         next();
     };
 };

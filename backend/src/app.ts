@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import sequelize from './config/database.js';
 import { initializeBuckets } from './config/minio.js';
+import { startOrderCleanupJob } from './jobs/order.cleanup.job.js';
 
 dotenv.config();
 
@@ -88,6 +89,9 @@ const startServer = async (): Promise<void> => {
         await initializeBuckets();
         console.log('MinIO buckets initialized.');
 
+        // Start background jobs
+        startOrderCleanupJob();
+
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
         });
@@ -116,4 +120,11 @@ const gracefulShutdown = async (signal: string) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-startServer();
+// Export app for testing
+export { app };
+
+// Only start server if run directly
+import { fileURLToPath } from 'url';
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    startServer();
+}

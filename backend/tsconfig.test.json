@@ -1,0 +1,21 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "types": [
+            "node",
+            "jest"
+        ],
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "verbatimModuleSyntax": false
+    },
+    "include": [
+        "src/**/*",
+        "tests/**/*",
+        "jest.setup.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

@@ -1,0 +1,154 @@
+
+> backend@1.0.0 dev
+> tsx watch src/app.ts
+
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+Error: Parse error /Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/modules/marketing/models/coupon.model.js:113:2
+    at parse (file:///Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/lexer-DQCqS3nf.mjs:1:620)
+    at parseEsm (file:///Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/index-7AaEi15b.mjs:13:168)
+    at transformDynamicImport (file:///Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/index-7AaEi15b.mjs:13:534)
+    at load (file:///Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/esm/index.mjs?1770572046713:2:2467)
+    at async nextLoad (node:internal/modules/esm/hooks:785:22)
+    at async AsyncLoaderHooksOnLoaderHookWorker.load (node:internal/modules/esm/hooks:410:20)
+    at async handleMessage (node:internal/modules/esm/worker:251:18) {
+  idx: 2681
+}
+
+Node.js v24.12.0
+11:04:46 PM [tsx] change in ./src/modules/marketing/models/coupon.model.js Rerunning...
+c[dotenv@17.2.3] injecting env (25) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+Firebase Admin initializing with Project ID: ruvera-a98ef
+[Razorpay] Initialized in LIVE mode
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+Database synced.
+✓ All MinIO buckets initialized
+MinIO buckets initialized.
+Server is running on port 5000
+Process exited with code: 0
+Trace: Exit trace
+    at process.<anonymous> (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/app.ts:101:13)
+    at process.emit (node:events:508:28)
+    at process.emit (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/suppress-warnings.cjs:1:472)
+11:05:07 PM [tsx] change in ./src/modules/marketing/models/coupon.model.js Rerunning...
+c[dotenv@17.2.3] injecting env (25) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+Firebase Admin initializing with Project ID: ruvera-a98ef
+[Razorpay] Initialized in LIVE mode
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+Database synced.
+✓ All MinIO buckets initialized
+MinIO buckets initialized.
+Server is running on port 5000
+[OrderController] createOrder started for customer: 6a5979d7-5f5b-4f48-821d-1a52965436ce
+[OrderController] Payload - items count: 1
+[OrderController] Validating coupon: NODE1770572253336
+[OrderController] Coupon Applied. Discount: 439.6, Free Shipping: false
+[OrderController] Coupon usage recorded for Order 1439ad64-2246-499b-8a40-cc1f4021e4b1
+[OrderController] Order created successfully: ORD-1770572253473
+11:07:52 PM [tsx] change in ./src/modules/marketing/services/coupon.service.js Restarting...
+Received SIGTERM. Shutting down gracefully...
+Database connection closed.
+Process exited with code: 0
+Trace: Exit trace
+    at process.<anonymous> (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/app.ts:101:13)
+    at process.emit (node:events:508:28)
+    at process.emit (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/suppress-warnings.cjs:1:472)
+    at process.exit (node:internal/process/per_thread:236:15)
+    at gracefulShutdown (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/app.ts:109:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+c[dotenv@17.2.3] injecting env (25) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+Firebase Admin initializing with Project ID: ruvera-a98ef
+[Razorpay] Initialized in LIVE mode
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+Database synced.
+✓ All MinIO buckets initialized
+MinIO buckets initialized.
+Server is running on port 5000
+11:08:17 PM [tsx] change in ./src/app.ts Restarting...
+Received SIGTERM. Shutting down gracefully...
+Database connection closed.
+Process exited with code: 0
+Trace: Exit trace
+    at process.<anonymous> (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/app.ts:101:13)
+    at process.emit (node:events:508:28)
+    at process.emit (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/suppress-warnings.cjs:1:472)
+    at process.exit (node:internal/process/per_thread:236:15)
+    at gracefulShutdown (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/app.ts:109:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+c[dotenv@17.2.3] injecting env (25) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+Firebase Admin initializing with Project ID: ruvera-a98ef
+[Razorpay] Initialized in LIVE mode
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+Database synced.
+✓ All MinIO buckets initialized
+MinIO buckets initialized.
+Server is running on port 5000
+11:11:51 PM [tsx] change in ./src/modules/marketing/services/coupon.service.js Restarting...
+Received SIGTERM. Shutting down gracefully...
+Database connection closed.
+Process exited with code: 0
+Trace: Exit trace
+    at process.<anonymous> (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/app.ts:101:13)
+    at process.emit (node:events:508:28)
+    at process.emit (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/suppress-warnings.cjs:1:472)
+    at process.exit (node:internal/process/per_thread:236:15)
+    at gracefulShutdown (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/app.ts:109:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+c[dotenv@17.2.3] injecting env (25) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+Firebase Admin initializing with Project ID: ruvera-a98ef
+[Razorpay] Initialized in LIVE mode
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+Database synced.
+✓ All MinIO buckets initialized
+MinIO buckets initialized.
+Server is running on port 5000
+Process exited with code: 0
+Trace: Exit trace
+    at process.<anonymous> (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/app.ts:101:13)
+    at process.emit (node:events:508:28)
+    at process.emit (/Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/node_modules/tsx/dist/suppress-warnings.cjs:1:472)
+11:17:05 PM [tsx] change in ./src/modules/marketing/coupon.controller.js Rerunning...
+c[dotenv@17.2.3] injecting env (25) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+Firebase Admin initializing with Project ID: ruvera-a98ef
+[Razorpay] Initialized in LIVE mode
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+Database synced.
+✓ All MinIO buckets initialized
+MinIO buckets initialized.
+Server is running on port 5000
+[OrderController] createOrder started for customer: 9c7b6a11-e4ba-4179-8074-608666fb21ca
+[OrderController] Payload - items count: 1
+[OrderController] Validating coupon: NODE1770572884601
+[OrderController] Coupon Applied. Discount: 219.8, Free Shipping: false
+[OrderController] Coupon usage recorded for Order 53149946-a112-4f5d-8b3f-cd6b2bcd544a
+[OrderController] Order created successfully: ORD-1770572884707
+[OrderController] createOrder started for customer: 646a950d-f185-49c6-99ff-3a14b7c6e1e0
+[OrderController] Payload - items count: 1
+Error creating order: Error: Insufficient stock for 786-M. Available: 0
+    at createOrder (file:///Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/modules/order/order.controller.js:140:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[OrderController] createOrder started for customer: 07940e98-5aba-4028-9c48-42f84b8d3ab1
+[OrderController] Payload - items count: 1
+Error creating order: Error: Insufficient stock for 786-M. Available: 0
+    at createOrder (file:///Users/admin/code/ruvera/ruveraweb/v2/Couture-web/backend/src/modules/order/order.controller.js:140:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[OrderController] createOrder started for customer: 4e1b3d26-842d-4a1a-b1d3-05311534ae3a
+[OrderController] Payload - items count: 1
+[OrderController] Validating coupon: CURL1770573069
+[OrderController] Coupon Applied. Discount: 219.8, Free Shipping: false
+[OrderController] Coupon usage recorded for Order 433714e5-7bb0-4ed3-875e-ff368d96b290
+[OrderController] Order created successfully: ORD-1770573071364

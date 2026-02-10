@@ -25,6 +25,17 @@ jest.unstable_mockModule('../models/review.model.js', () => ({ default: {} }));
 jest.unstable_mockModule('../../identity/models/customer.model.js', () => ({ default: {} }));
 jest.unstable_mockModule('../models/category.model.js', () => ({ default: {} }));
 jest.unstable_mockModule('../models/brand.model.js', () => ({ default: {} }));
+jest.unstable_mockModule('../../../config/database.js', () => ({
+    default: {
+        transaction: jest.fn().mockResolvedValue({
+            commit: jest.fn(),
+            rollback: jest.fn(),
+        }),
+    }
+}));
+jest.unstable_mockModule('sequelize', () => ({
+    Op: { in: Symbol('in') }
+}));
 
 // Dynamic import
 const { addProductVariant, deleteProductVariant } = await import('../product.controller.js');

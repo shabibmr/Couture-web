@@ -61,6 +61,12 @@ jest.unstable_mockModule('../../identity/models/customer.model.js', () => ({ def
 jest.unstable_mockModule('../../notification/services/email.service.js', () => mockEmailService);
 jest.unstable_mockModule('../../notification/services/notification.service.js', () => mockNotificationService);
 
+// Setup env vars BEFORE import so initRazorpay works
+process.env.RAZORPAY_MODE = 'test';
+process.env.RAZORPAY_TEST_KEY_ID = 'test_key';
+process.env.RAZORPAY_TEST_KEY_SECRET = 'test_secret';
+process.env.RAZORPAY_WEBHOOK_SECRET = 'test_webhook_secret';
+
 const {
     getAllPayments,
     createRazorpayOrder,
@@ -84,11 +90,6 @@ describe('Payment Controller', () => {
             status: jest.fn().mockReturnThis(),
         };
         jest.clearAllMocks();
-
-        // Setup env vars
-        process.env.RAZORPAY_KEY_ID = 'test_key';
-        process.env.RAZORPAY_KEY_SECRET = 'test_secret';
-        process.env.RAZORPAY_WEBHOOK_SECRET = 'test_webhook_secret';
     });
 
     describe('createRazorpayOrder', () => {

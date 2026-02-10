@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Edit2, Trash2, Ticket, Calendar } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Ticket, Calendar, Truck, User, ShoppingBag, Star } from 'lucide-react';
 
 import api from '../../services/api';
 
@@ -42,6 +42,22 @@ export default function CouponList() {
         coupon.code.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const getDiscountDisplay = (coupon) => {
+        switch (coupon.discount_type) {
+            case 'percentage':
+                const cap = coupon.max_discount_amount ? ` (max ${formatCurrency(coupon.max_discount_amount)})` : '';
+                return `${coupon.discount_value}% OFF${cap}`;
+            case 'fixed':
+                return `${formatCurrency(coupon.discount_value)} OFF`;
+            case 'free_shipping':
+                return 'FREE SHIPPING';
+            case 'bogo':
+                return 'BUY 1 GET 1';
+            default:
+                return coupon.discount_value;
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -78,8 +94,8 @@ export default function CouponList() {
                     filteredCoupons.map(coupon => (
                         <div key={coupon.id} className="bg-white rounded-xl shadow-sm border border-stone-100 p-6 hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 bg-stone-50 rounded-lg text-ruvera-gold">
-                                    <Ticket size={24} />
+                                <div className={`p-3 rounded-lg ${coupon.discount_type === 'free_shipping' ? 'bg-blue-50 text-blue-600' : 'bg-stone-50 text-ruvera-gold'}`}>
+                                    {coupon.discount_type === 'free_shipping' ? <Truck size={24} /> : <Ticket size={24} />}
                                 </div>
                                 <div className="flex gap-2">
                                     <Link to={`/coupons/${coupon.id}`} className="p-2 text-stone-400 hover:text-ruvera-gold hover:bg-stone-50 rounded-full transition-colors">
@@ -92,27 +108,62 @@ export default function CouponList() {
                             </div>
 
                             <h3 className="text-xl font-serif text-midnight mb-1">{coupon.code}</h3>
-                            <p className="text-stone-500 text-sm mb-4">
-                                {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `${formatCurrency(coupon.value)} OFF`}
-                                {coupon.minOrder > 0 && ` on orders over ${formatCurrency(coupon.minOrder)}`}
+                            <p className="text-stone-500 text-sm mb-3">
+                                {getDiscountDisplay(coupon)}
+                                {coupon.min_order_value > 0 && ` on orders over ${formatCurrency(coupon.min_order_value)}`}
                             </p>
+
+                            {/* Feature Badges */}
+                            <div className="flex flex-wrap gap-1.5 mb-4">
+                                {coupon.is_single_use && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                        Single Use
+                                    </span>
+                                )}
+                                {coupon.is_first_order_only && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 flex items-center gap-1">
+                                        <Star size={10} /> First Order
+                                    </span>
+                                )}
+                                {coupon.is_private && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-700 flex items-center gap-1">
+                                        <User size={10} /> VIP
+                                    </span>
+                                )}
+                                {coupon.applies_to !== 'all' && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 flex items-center gap-1">
+                                        <ShoppingBag size={10} /> {coupon.applies_to === 'products' ? 'Products' : 'Categories'}
+                                    </span>
+                                )}
+                                {coupon.is_stackable === false && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-stone-200 text-stone-600">
+                                        Non-Stackable
+                                    </span>
+                                )}
+                            </div>
 
                             <div className="space-y-2 text-sm text-stone-600 border-t border-stone-100 pt-4">
                                 <div className="flex justify-between">
                                     <span>Usage</span>
-                                    <span>{coupon.usage} / {coupon.limit || '∞'}</span>
+                                    <span>{coupon.used_count || 0} / {coupon.usage_limit || '∞'}</span>
                                 </div>
+                                {coupon.per_customer_limit && (
+                                    <div className="flex justify-between">
+                                        <span>Per Customer</span>
+                                        <span>Max {coupon.per_customer_limit}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-center">
                                     <span className="flex items-center gap-1.5">
                                         <Calendar size={14} />
                                         Expires
                                     </span>
-                                    <span>{new Date(coupon.validUntil).toLocaleDateString()}</span>
+                                    <span>{coupon.valid_until ? new Date(coupon.valid_until).toLocaleDateString() : 'Never'}</span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">
                                     <span>Status</span>
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${coupon.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-500'}`}>
-                                        {coupon.isActive ? 'Active' : 'Inactive'}
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${coupon.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-500'}`}>
+                                        {coupon.is_active ? 'Active' : 'Inactive'}
                                     </span>
                                 </div>
                             </div>

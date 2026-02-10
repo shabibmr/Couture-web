@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Lock, ArrowLeft, CreditCard } from 'lucide-react';
 import SEO from '../components/SEO';
@@ -9,14 +9,14 @@ import api from '../services/api.service';
 import { API_ENDPOINTS } from '../config/api.config';
 import logger from '../utils/logger';
 
-// ... (keep declarations and interfaces)
-
 // Add Window interface for Razorpay
 declare global {
     interface Window {
         Razorpay: any;
     }
 }
+
+import userService, { BackendAddress, CreateAddressData } from '../services/userService';
 
 interface CheckoutState {
     subtotal: number;
@@ -27,7 +27,6 @@ interface CheckoutState {
 }
 
 const CheckoutPage: React.FC = () => {
-    // ... (keep all hooks and logic)
     const navigate = useNavigate();
     const location = useLocation();
     const { cart, addOrder, clearCart, formatPrice, currency: shopCurrency } = useShop();
@@ -103,48 +102,253 @@ const CheckoutPage: React.FC = () => {
 
     const [loading, setLoading] = useState<boolean>(false);
     const [paymentMode, setPaymentMode] = useState<string>(''); // 'test' or 'live'
+    // Track pending order to prevent duplicate orders on payment retry
+    const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         address: '',
         city: '',
+        state: '',
         zip: '',
         phone: ''
     });
+
+    // Auto-populate address from user profile
+    const [savedAddresses, setSavedAddresses] = useState<BackendAddress[]>([]);
+
+    useEffect(() => {
+        const fetchAddresses = async () => {
+            if (user?.backendToken) {
+                try {
+                    const addresses = await userService.getAddresses();
+                    setSavedAddresses(addresses);
+
+                    if (addresses.length > 0) {
+                        // Prefer default shipping address, otherwise first one
+                        const defaultAddress = addresses.find(a => a.is_default_shipping) || addresses[0];
+
+                        setFormData(prev => ({
+                            ...prev,
+                            name: defaultAddress.full_name || prev.name,
+                            address: defaultAddress.address_line1 + (defaultAddress.address_line2 ? `, ${defaultAddress.address_line2}` : ''),
+                            city: defaultAddress.city || prev.city,
+                            state: defaultAddress.state || prev.state,
+                            zip: defaultAddress.postal_code || prev.zip,
+                            phone: defaultAddress.phone || prev.phone
+                        }));
+                    }
+                } catch (error) {
+                    logger.error("[CheckoutPage] Error fetching addresses", { error });
+                }
+            }
+        };
+
+        fetchAddresses();
+    }, [user?.backendToken]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // Multi-coupon support: store array of applied coupons
+    const [couponCodes, setCouponCodes] = useState<string[]>(
+        (location.state as any)?.couponCode ? [(location.state as any).couponCode] : []
+    );
+    const [couponInput, setCouponInput] = useState<string>('');
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponError, setCouponError] = useState<string | null>(null);
+    const [couponSuccess, setCouponSuccess] = useState<string | null>(
+        (location.state as any)?.couponCode ? 'Coupon applied' : null
+    );
+
+    const MAX_COUPONS = 3;
+
+    const handleApplyCoupon = async () => {
+        if (!couponInput) return;
+        if (couponCodes.length >= MAX_COUPONS) {
+            setCouponError(`Maximum ${MAX_COUPONS} coupons allowed`);
+            return;
+        }
+        if (couponCodes.includes(couponInput.toUpperCase())) {
+            setCouponError('Coupon already applied');
+            return;
+        }
+
+        setCouponLoading(true);
+        setCouponError(null);
+        setCouponSuccess(null);
+
+        try {
+            const newCodes = [...couponCodes, couponInput.toUpperCase()];
+
+            // Use validate-multiple endpoint when stacking
+            const response = newCodes.length > 1
+                ? await api.post(API_ENDPOINTS.COUPONS.VALIDATE_MULTIPLE, {
+                    codes: newCodes,
+                    cartTotal: orderSummary.subtotal,
+                    items: cart.map(item => ({
+                        product_id: item.id,
+                        quantity: item.quantity || 1,
+                        price: parsePrice(item.price),
+                    }))
+                })
+                : await api.post(API_ENDPOINTS.COUPONS.VALIDATE, {
+                    code: couponInput,
+                    cartTotal: orderSummary.subtotal,
+                    items: cart.map(item => ({
+                        product_id: item.id,
+                        quantity: item.quantity || 1,
+                        price: parsePrice(item.price),
+                    }))
+                });
+
+            if (response.data.isValid) {
+                setCouponCodes(newCodes);
+                setCouponInput('');
+                setCouponSuccess(response.data.message || 'Coupon applied!');
+
+                // Update Order Summary
+                setOrderSummary(prev => ({
+                    ...prev,
+                    discount: response.data.discountAmount,
+                    shippingFee: response.data.freeShipping ? 0 : prev.shippingFee,
+                    total: Math.max(0, prev.subtotal + (response.data.freeShipping ? 0 : prev.shippingFee) - response.data.discountAmount)
+                }));
+            } else {
+                setCouponError(response.data.message || 'Invalid Coupon');
+            }
+        } catch (error: any) {
+            setCouponError(error.response?.data?.message || 'Error validating coupon');
+        } finally {
+            setCouponLoading(false);
+        }
+    };
+
+    const handleRemoveCoupon = async (codeToRemove: string) => {
+        const newCodes = couponCodes.filter(c => c !== codeToRemove);
+        setCouponCodes(newCodes);
+        setCouponSuccess(null);
+        setCouponError(null);
+
+        if (newCodes.length === 0) {
+            // Reset totals when all coupons removed
+            setOrderSummary(prev => ({
+                ...prev,
+                discount: 0,
+                total: prev.subtotal + prev.shippingFee
+            }));
+
+            // Refetch shipping
+            api.get(API_ENDPOINTS.ORDERS.CALCULATE_SHIPPING(orderSummary.subtotal))
+                .then(res => {
+                    setOrderSummary(prev => ({
+                        ...prev,
+                        shippingFee: res.data.shipping_amount,
+                        total: prev.subtotal + res.data.shipping_amount
+                    }));
+                });
+        } else {
+            // Re-validate remaining coupons
+            try {
+                const response = newCodes.length > 1
+                    ? await api.post(API_ENDPOINTS.COUPONS.VALIDATE_MULTIPLE, {
+                        codes: newCodes,
+                        cartTotal: orderSummary.subtotal,
+                        items: cart.map(item => ({
+                            product_id: item.id,
+                            quantity: item.quantity || 1,
+                            price: parsePrice(item.price),
+                        }))
+                    })
+                    : await api.post(API_ENDPOINTS.COUPONS.VALIDATE, {
+                        code: newCodes[0],
+                        cartTotal: orderSummary.subtotal,
+                        items: cart.map(item => ({
+                            product_id: item.id,
+                            quantity: item.quantity || 1,
+                            price: parsePrice(item.price),
+                        }))
+                    });
+
+                if (response.data.isValid) {
+                    setOrderSummary(prev => ({
+                        ...prev,
+                        discount: response.data.discountAmount,
+                        shippingFee: response.data.freeShipping ? 0 : prev.shippingFee,
+                        total: Math.max(0, prev.subtotal + (response.data.freeShipping ? 0 : prev.shippingFee) - response.data.discountAmount)
+                    }));
+                }
+            } catch (error) {
+                console.error('Error re-validating coupons', error);
+            }
+        }
+    };
+
     const handlePayment = async (e: FormEvent) => {
         e.preventDefault();
-        logger.info("[CheckoutPage] Payment initiated", { total: orderSummary.total });
+        logger.info("[CheckoutPage] Payment initiated", { total: orderSummary.total, existingOrderId: pendingOrderId });
         setLoading(true);
 
         try {
-            // 1. Create Order in Backend with complete order data
-            logger.info("[CheckoutPage] Creating order in backend");
-            const orderResponse = await api.post(API_ENDPOINTS.ORDERS.CREATE, {
-                shipping_address: formData,
-                billing_address: formData,
-                items: cart.map(item => ({
-                    product_id: item.id,
-                    quantity: item.quantity || 1,
-                    size: item.selectedSize || 'M',
-                    price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price).replace(/[^0-9.]/g, '')),
-                    variant_id: (item as any).variant_id || null
-                })),
-                subtotal: orderSummary.subtotal,
-                tax: orderSummary.tax,
-                discount: orderSummary.discount,
-                total_amount: orderSummary.total,
-                payment_method: 'razorpay',
-                currency: shopCurrency.code,
-                // Include coupon code if available from location state
-                coupon_code: (location.state as any)?.couponCode || null
-            });
+            let backendOrderId = pendingOrderId;
 
-            const backendOrderId = orderResponse.data.order.id || orderResponse.data.order.order_id;
-            logger.info("[CheckoutPage] Backend order created", { backendOrderId });
+            // Only create a new order if we don't have a pending one (prevents duplicate orders on retry)
+            if (!backendOrderId) {
+                // Save address if it's new
+                try {
+                    const addressExists = savedAddresses.some(addr =>
+                        addr.address_line1.toLowerCase() === formData.address.toLowerCase() &&
+                        addr.city.toLowerCase() === formData.city.toLowerCase() &&
+                        addr.state.toLowerCase() === formData.state.toLowerCase() &&
+                        addr.postal_code === formData.zip
+                    );
+
+                    if (!addressExists && user?.backendToken) {
+                        logger.info("[CheckoutPage] Saving new address to profile");
+                        const newAddressPayload: CreateAddressData = {
+                            full_name: formData.name,
+                            phone: formData.phone,
+                            address_line1: formData.address,
+                            city: formData.city,
+                            state: formData.state,
+                            postal_code: formData.zip,
+                            is_default_shipping: savedAddresses.length === 0, // Make default if it's the first one
+                            is_default_billing: savedAddresses.length === 0
+                        };
+                        await userService.addAddress(newAddressPayload);
+                        // Refresh addresses in background (optional, but good for consistency if they come back)
+                        userService.getAddresses().then(setSavedAddresses).catch(() => { });
+                    }
+                } catch (err) {
+                    logger.error("[CheckoutPage] Failed to save address (non-blocking)", { error: err });
+                }
+
+                logger.info("[CheckoutPage] Creating order in backend");
+                const orderResponse = await api.post(API_ENDPOINTS.ORDERS.CREATE, {
+                    shipping_address: formData,
+                    billing_address: formData,
+                    items: cart.map(item => ({
+                        product_id: item.id,
+                        quantity: item.quantity || 1,
+                        size: item.selectedSize || 'M',
+                        price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price).replace(/[^0-9.]/g, '')),
+                        variant_id: (item as any).variant_id || null
+                    })),
+                    subtotal: orderSummary.subtotal,
+                    tax: orderSummary.tax,
+                    discount: orderSummary.discount,
+                    total_amount: orderSummary.total,
+                    payment_method: 'razorpay',
+                    currency: shopCurrency.code,
+                    coupon_codes: couponCodes.length > 0 ? couponCodes : null
+                });
+
+                backendOrderId = orderResponse.data.order.id || orderResponse.data.order.order_id;
+                setPendingOrderId(backendOrderId);
+                logger.info("[CheckoutPage] Backend order created", { backendOrderId });
+            } else {
+                logger.info("[CheckoutPage] Reusing existing pending order for payment retry", { backendOrderId });
+            }
 
             // 2. Create Razorpay Order
             const razorpayOrderResponse = await api.post(API_ENDPOINTS.PAYMENT.CREATE_ORDER, {
@@ -173,7 +377,7 @@ const CheckoutPage: React.FC = () => {
 
                         if (verifyResponse.data.status === 'success') {
                             const newOrder: OrderType = {
-                                id: backendOrderId,
+                                id: backendOrderId!,
                                 date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                                 total: total,
                                 status: 'Confirmed',
@@ -187,6 +391,7 @@ const CheckoutPage: React.FC = () => {
                             };
                             addOrder(newOrder);
                             clearCart();
+                            setPendingOrderId(null); // Clear pending order on success
                             navigate('/order-success', { state: { orderId: backendOrderId } });
                         } else {
                             logger.error('Payment verification failed', { response });
@@ -261,25 +466,29 @@ const CheckoutPage: React.FC = () => {
                         <form onSubmit={handlePayment} className="space-y-6">
                             <div>
                                 <label className="block text-xs uppercase text-stone-400 mb-2">Full Name</label>
-                                <input name="name" required onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="John Doe" />
+                                <input name="name" required value={formData.name} onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="John Doe" />
                             </div>
                             <div>
                                 <label className="block text-xs uppercase text-stone-400 mb-2">Address</label>
-                                <input name="address" required onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="123 Fashion Ave" />
+                                <input name="address" required value={formData.address} onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="123 Fashion Ave" />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-xs uppercase text-stone-400 mb-2">City</label>
-                                    <input name="city" required onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="Mumbai" />
+                                    <input name="city" required value={formData.city} onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="Mumbai" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs uppercase text-stone-400 mb-2">State</label>
+                                    <input name="state" required value={formData.state} onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="Maharashtra" />
                                 </div>
                                 <div>
                                     <label className="block text-xs uppercase text-stone-400 mb-2">Zip Code</label>
-                                    <input name="zip" required onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="400001" />
+                                    <input name="zip" required value={formData.zip} onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="400001" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-xs uppercase text-stone-400 mb-2">Phone</label>
-                                <input name="phone" required type="tel" onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="+91 98765 43210" />
+                                <input name="phone" required type="tel" value={formData.phone} onChange={handleChange} className="w-full bg-stone-50 border border-stone-200 p-3 rounded focus:outline-none focus:border-ruvera-gold" placeholder="+91 98765 43210" />
                             </div>
 
                             <div className="pt-6">
@@ -325,6 +534,57 @@ const CheckoutPage: React.FC = () => {
 
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Coupon Code Section - Multi-coupon support */}
+                        <div className="border-t border-stone-200 py-4 mb-2">
+                            <label className="block text-xs uppercase tracking-widest text-stone-500 mb-2">
+                                Promo Code {couponCodes.length > 0 && `(${couponCodes.length}/${MAX_COUPONS})`}
+                            </label>
+
+                            {/* Display applied coupons as chips */}
+                            {couponCodes.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {couponCodes.map((code) => (
+                                        <div
+                                            key={code}
+                                            className="inline-flex items-center gap-1 bg-green-50 border border-green-200 px-2 py-1 rounded text-sm"
+                                        >
+                                            <span className="text-green-700 font-medium">✓ {code}</span>
+                                            <button
+                                                onClick={() => handleRemoveCoupon(code)}
+                                                className="text-red-400 hover:text-red-600 ml-1"
+                                                title="Remove coupon"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Show input when under limit */}
+                            {couponCodes.length < MAX_COUPONS && (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={couponInput}
+                                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                                        placeholder={couponCodes.length > 0 ? "Add another code" : "Enter code"}
+                                        className="flex-1 bg-stone-50 border border-stone-200 px-3 py-2 text-sm rounded focus:outline-none focus:border-ruvera-gold"
+                                    />
+                                    <button
+                                        onClick={handleApplyCoupon}
+                                        disabled={couponLoading || !couponInput}
+                                        className="bg-stone-200 text-stone-600 px-3 py-2 text-xs uppercase tracking-wider font-medium rounded hover:bg-ruvera-gold hover:text-white transition-colors disabled:opacity-50"
+                                    >
+                                        {couponLoading ? '...' : 'Apply'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {couponError && <p className="text-xs text-red-500 mt-1">{couponError}</p>}
+                            {couponSuccess && <p className="text-xs text-green-600 mt-1">{couponSuccess}</p>}
                         </div>
 
                         <div className="border-t border-stone-200 pt-4 space-y-2 text-sm text-stone-600">

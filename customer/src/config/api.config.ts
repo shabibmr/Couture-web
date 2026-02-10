@@ -71,6 +71,7 @@ export const API_ENDPOINTS = {
     // 8. MARKETING - COUPONS
     COUPONS: {
         VALIDATE: '/coupons/validate',
+        VALIDATE_MULTIPLE: '/coupons/validate-multiple',
         LIST: '/coupons',
     },
 

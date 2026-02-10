@@ -86,3 +86,23 @@ export const updateOrderStatusSchema = Joi.object({
             'any.required': 'Status is required'
         })
 });
+
+/**
+ * Schema for order query parameters
+ */
+export const orderQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    status: Joi.string().valid(
+        'pending',
+        'confirmed',
+        'processing',
+        'shipped',
+        'delivered',
+        'cancelled',
+        'refunded'
+    ).optional(),
+    customer_id: Joi.string().uuid().optional(),
+    date_from: Joi.date().iso().optional(),
+    date_to: Joi.date().iso().optional()
+});

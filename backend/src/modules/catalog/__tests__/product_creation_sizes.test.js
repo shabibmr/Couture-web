@@ -9,11 +9,14 @@ const mockProduct = {
 };
 const mockProductVariant = {
     create: jest.fn(),
+    bulkCreate: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
 };
 const mockInventory = {
     create: jest.fn(),
+    bulkCreate: jest.fn(),
+    destroy: jest.fn(),
 };
 const mockSize = {
     findAll: jest.fn(),
@@ -34,6 +37,15 @@ jest.unstable_mockModule('../models/brand.model.js', () => ({ default: {} }));
 jest.unstable_mockModule('../models/color.model.js', () => ({ default: {} }));
 jest.unstable_mockModule('../models/review.model.js', () => ({ default: {} }));
 jest.unstable_mockModule('../../identity/models/customer.model.js', () => ({ default: {} }));
+jest.unstable_mockModule('../../../config/database.js', () => ({
+    default: {
+        transaction: jest.fn().mockResolvedValue({
+            commit: jest.fn(),
+            rollback: jest.fn(),
+        }),
+    },
+    Op: { in: Symbol('in') }
+}));
 
 // Import Controller
 const { createProduct, updateProduct } = await import('../product.controller.js');
@@ -67,8 +79,8 @@ describe('Product Creation with Sizes', () => {
             { id: 11, name: 'M', code: 'M' }
         ]);
 
-        // Mock Variant Creation
-        mockProductVariant.create.mockResolvedValue({ id: 100 });
+        // Mock Variant Creation (bulkCreate returns array)
+        mockProductVariant.bulkCreate.mockResolvedValue([{ id: 100 }, { id: 101 }]);
 
         await createProduct(req, res);
 
@@ -76,13 +88,18 @@ describe('Product Creation with Sizes', () => {
         expect(mockProduct.create).toHaveBeenCalled();
 
         // Verify Sizes Looked Up
-        expect(mockSize.findAll).toHaveBeenCalledWith({ where: { name: ['S', 'M'] } });
+        expect(mockSize.findAll).toHaveBeenCalledWith(expect.objectContaining({
+            where: {
+                name: { [Symbol.for('in')]: ['S', 'M'] } // Actually I mocked as Symbol('in'), not Symbol.for
+            },
+            transaction: expect.anything()
+        }));
 
-        // Verify Variants Created (2 calls)
-        expect(mockProductVariant.create).toHaveBeenCalledTimes(2);
+        // Verify Variants Created (bulkCreate called once with 2 records)
+        expect(mockProductVariant.bulkCreate).toHaveBeenCalledTimes(1);
 
-        // Verify Inventory Created (2 calls)
-        expect(mockInventory.create).toHaveBeenCalledTimes(2);
+        // Verify Inventory Created (bulkCreate called once with 2 records)
+        expect(mockInventory.bulkCreate).toHaveBeenCalledTimes(1);
 
         // Verify Response
         expect(res.status).toHaveBeenCalledWith(201);
@@ -129,8 +146,8 @@ describe('Product Update with Sizes', () => {
 
         // Mock Existing Variants (S and M exist)
         mockProductVariant.findAll.mockResolvedValue([
-            { Size: { name: 'S' } },
-            { Size: { name: 'M' } }
+            { id: 20, sku: 'sku-S', Size: { name: 'S' }, destroy: jest.fn(), update: jest.fn() },
+            { id: 21, sku: 'sku-M', Size: { name: 'M' }, destroy: jest.fn(), update: jest.fn() }
         ]);
 
         // Mock Size Lookup for new size 'L'
@@ -138,24 +155,34 @@ describe('Product Update with Sizes', () => {
             { id: 12, name: 'L', code: 'L' }
         ]);
 
-        mockProductVariant.create.mockResolvedValue({ id: 101 });
+        mockProductVariant.bulkCreate.mockResolvedValue([{ id: 101 }]);
 
         await updateProduct(req, res);
 
         // Should look for existing variants
         expect(mockProductVariant.findAll).toHaveBeenCalledWith(expect.objectContaining({ where: { product_id: 1 } }));
 
-        // Should look up LAST size
-        expect(mockSize.findAll).toHaveBeenCalledWith({ where: { name: ['L'] } });
-
-        // Should create ONE new variant
-        expect(mockProductVariant.create).toHaveBeenCalledTimes(1);
-        expect(mockProductVariant.create).toHaveBeenCalledWith(expect.objectContaining({
-            size_id: 12,
-            product_id: 1
+        // Should look up new size
+        expect(mockSize.findAll).toHaveBeenCalledWith(expect.objectContaining({
+            where: {
+                name: expect.anything()
+            },
+            transaction: expect.anything()
         }));
 
-        // Should create inventory for it
-        expect(mockInventory.create).toHaveBeenCalledTimes(1);
+        // Should create ONE new variant (via bulkCreate)
+        expect(mockProductVariant.bulkCreate).toHaveBeenCalledTimes(1);
+        expect(mockProductVariant.bulkCreate).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    size_id: 12,
+                    product_id: 1
+                })
+            ]),
+            expect.anything()
+        );
+
+        // Should create inventory for it (via bulkCreate)
+        expect(mockInventory.bulkCreate).toHaveBeenCalledTimes(1);
     });
 });

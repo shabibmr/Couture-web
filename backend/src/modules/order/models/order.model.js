@@ -56,6 +56,11 @@ const Order = sequelize.define('Order', {
             key: 'id'
         }
     },
+    coupon_code: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: 'Stores coupon codes as JSON array for multi-coupon support'
+    },
     shipping_method_id: {
         type: DataTypes.UUID,
         allowNull: true,

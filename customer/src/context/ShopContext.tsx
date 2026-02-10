@@ -1,11 +1,23 @@
-import React, { createContext, useState, useContext, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { Product, CartItem, Order, ShopContextType, Currency } from '../types';
+import { AddToCartRequest, UpdateCartItemRequest, SettingsResponse, AddToCartResponse } from '../types/apiResponses';
 import { API_ENDPOINTS } from '../config/api.config';
 import { useAuth } from './AuthContext';
 import api from '../services/api.service';
 import logger from '../utils/logger';
 import logRocketService from '../utils/logrocketService';
 import firebaseAnalytics from '../utils/firebaseAnalytics';
+import { resolveProductPrice, normalizeProductImage } from '../utils/priceResolver';
+import { DEFAULT_SIZE, DEFAULT_CURRENCY, STORAGE_KEYS, MIN_CART_QUANTITY } from './shopConstants';
+import {
+    fetchBackendCart,
+    fetchBackendWishlist,
+    fetchBackendOrders,
+    mergeGuestCartWithBackend,
+    loadGuestCartFromStorage,
+    saveGuestCartToStorage,
+    prepareProductForCart
+} from './shopHelpers';
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
@@ -15,27 +27,22 @@ interface ShopProviderProps {
 
 export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
     const { user } = useAuth();
+
+    // Initialize cart from localStorage for guests
     const [cart, setCart] = useState<CartItem[]>(() => {
-        // Load guest cart from localStorage on mount
         if (!user) {
-            const savedCart = localStorage.getItem('guest_cart');
-            if (savedCart) {
-                try {
-                    return JSON.parse(savedCart);
-                } catch (e) {
-                    logger.error('Error parsing guest cart', { error: e });
-                }
-            }
+            return loadGuestCartFromStorage(STORAGE_KEYS.GUEST_CART);
         }
         return [];
     });
+
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [wishlist, setWishlist] = useState<Product[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [currency, setCurrency] = useState<Currency>({ code: 'INR', symbol: '₹' });
+    const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY);
 
     // Ref to track if cart has been merged with backend
     const cartMergedRef = useRef(false);
@@ -46,16 +53,18 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                // @ts-ignore - API_ENDPOINTS.SETTINGS is dynamically added
-                const res = await api.get(API_ENDPOINTS.SETTINGS || '/settings');
+                const endpoint = API_ENDPOINTS.SETTINGS || '/settings';
+                const res = await api.get<SettingsResponse>(endpoint);
+
                 if (res.data) {
                     setCurrency({
-                        code: res.data.site_currency_code || 'INR',
-                        symbol: res.data.site_currency_symbol || '₹'
+                        code: res.data.site_currency_code || DEFAULT_CURRENCY.code,
+                        symbol: res.data.site_currency_symbol || DEFAULT_CURRENCY.symbol
                     });
                 }
             } catch (error) {
-                logger.error("Error fetching settings", { error });
+                logger.error('Error fetching settings', { error });
+                // Keep default currency on error
             }
         };
         fetchSettings();
@@ -63,7 +72,7 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
 
     // Sync Cart and Wishlist on login
     useEffect(() => {
-        const fetchUserData = async () => {
+        const syncUserData = async () => {
             // Check both merge completion AND in-progress status to prevent race conditions
             if (user?.backendToken && !cartMergedRef.current && !mergeInProgressRef.current) {
                 mergeInProgressRef.current = true;
@@ -71,181 +80,105 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                 setError(null);
 
                 // Capture guest cart from localStorage (most up-to-date)
-                const guestCartStr = localStorage.getItem('guest_cart');
-                let guestCart: CartItem[] = [];
-                if (guestCartStr) {
-                    try {
-                        guestCart = JSON.parse(guestCartStr);
-                    } catch (e) {
-                        logger.error('Error parsing guest cart during merge', { error: e });
-                    }
-                }
+                const guestCart = loadGuestCartFromStorage(STORAGE_KEYS.GUEST_CART);
 
                 try {
-                    // Fetch Cart
+                    // Fetch and merge cart
                     try {
-                        const cartRes = await api.get(API_ENDPOINTS.CART.GET);
-                        if (cartRes.data && cartRes.data.items) {
-                            const backendCart = cartRes.data.items.map((item: any) => {
-                                const product = item.ProductVariant?.Product || {};
-                                return {
-                                    ...product,
-                                    image: product.image || product.featured_image || '', // Normalize to image
-                                    price: product.sale_price || product.base_price || 0,
-                                    quantity: item.quantity,
-                                    selectedSize: item.ProductVariant?.Size?.name || item.size || 'M',
-                                    variant_id: item.variant_id,
-                                    cartItemId: item.id
-                                };
-                            });
+                        const backendCart = await fetchBackendCart();
+                        const mergedCart = await mergeGuestCartWithBackend(guestCart, backendCart);
 
-                            // Merge guest cart with backend cart
-                            // Create a map of backend items by product ID
-                            const backendCartMap = new Map(
-                                backendCart.map((item: any) => [item.id, item])
-                            );
+                        setCart(mergedCart);
 
-                            // Add guest cart items that don't exist in backend
-                            const mergedCart = [...backendCart];
-                            for (const guestItem of guestCart) {
-                                if (!backendCartMap.has(guestItem.id)) {
-                                    mergedCart.push(guestItem);
-                                    // Sync guest item to backend
-                                    try {
-                                        await api.post(API_ENDPOINTS.CART.ADD_ITEM, {
-                                            product_id: guestItem.id,
-                                            quantity: guestItem.quantity || 1,
-                                            size: guestItem.selectedSize || 'M',
-                                            variant_id: guestItem.variant_id
-                                        });
-                                    } catch (syncError) {
-                                        logger.error("Error syncing guest cart item to backend", { error: syncError });
-                                    }
-                                }
-                            }
+                        // Log cart merge
+                        logRocketService.logStateChange({
+                            context: 'ShopContext',
+                            action: 'cart_merged',
+                            newValue: {
+                                itemCount: mergedCart.length,
+                                guestItemCount: guestCart.length
+                            },
+                        });
 
-                            setCart(mergedCart);
-
-                            // Log cart merge
-                            logRocketService.logStateChange({
-                                context: 'ShopContext',
-                                action: 'cart_merged',
-                                newValue: { itemCount: mergedCart.length, guestItemCount: guestCart.length },
-                            });
-
-                            // Clear guest cart from localStorage after successful merge
-                            localStorage.removeItem('guest_cart');
-                            // Mark cart as merged
-                            cartMergedRef.current = true;
-                        }
-                    } catch (e) {
-                        console.error("Error fetching cart", e);
+                        // Clear guest cart from localStorage after successful merge
+                        localStorage.removeItem(STORAGE_KEYS.GUEST_CART);
+                        cartMergedRef.current = true;
+                    } catch (error) {
+                        logger.error('Error fetching/merging cart', { error });
+                        setError('Failed to load cart');
                     }
 
-                    // Fetch Wishlist
+                    // Fetch wishlist
                     try {
-                        logger.debug('[Wishlist] Fetching wishlist from backend');
-                        const wishlistRes = await api.get(API_ENDPOINTS.WISHLIST.GET);
-                        if (wishlistRes.data && wishlistRes.data.items) {
-                            const mappedItems = wishlistRes.data.items.map((item: any) => ({
-                                ...item.Product,
-                                image: item.Product?.image || item.Product?.featured_image || '', // Normalize to image
-                                wishlistItemId: item.id
-                            }));
-                            logger.info(`[Wishlist] Loaded ${mappedItems.length} items from backend`);
-                            setWishlist(mappedItems);
-                        } else {
-                            logger.debug('[Wishlist] Wishlist list empty or unexpected format');
-                        }
-                    } catch (e) {
-                        logger.error('[Wishlist] Error fetching wishlist', { error: e });
+                        const wishlistItems = await fetchBackendWishlist();
+                        setWishlist(wishlistItems);
+                    } catch (error) {
+                        // Error already logged in helper
+                        setError('Failed to load wishlist');
                     }
 
-                    // Fetch Orders
+                    // Fetch orders
                     try {
-                        const ordersRes = await api.get(API_ENDPOINTS.ORDERS.LIST);
-                        if (ordersRes.data && ordersRes.data.data) {
-                            setOrders(ordersRes.data.data.map((order: any) => ({
-                                id: order.order_number || `#${order.id}`,
-                                date: new Date(order.order_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                                total: order.total_amount,
-                                status: order.status,
-                                items: (order.items || []).map((item: any) => {
-                                    // OrderItem structure: product_name, variant_sku, unit_price, quantity
-                                    // Note: Backend doesn't include product details in OrderItem
-                                    return {
-                                        title: item.product_name || 'Product',
-                                        price: item.unit_price,
-                                        image: item.image || '', // May not be available from backend
-                                        quantity: item.quantity
-                                    };
-                                })
-                            })));
-                        }
-                    } catch (e) {
-                        logger.error("Error fetching orders", { error: e });
+                        const ordersList = await fetchBackendOrders();
+                        setOrders(ordersList);
+                    } catch (error) {
+                        // Error already logged in helper
+                        setError('Failed to load orders');
                     }
 
                 } catch (error) {
-                    logger.error("Error fetching user shop data", { error });
-                    setError("Failed to load user data");
+                    logger.error('Error syncing user shop data', { error });
+                    setError('Failed to load user data');
                 } finally {
                     setIsLoading(false);
-                    mergeInProgressRef.current = false; // Reset merge-in-progress flag
+                    mergeInProgressRef.current = false;
                 }
             } else if (!user?.backendToken) {
-                // Reset merge refs on logout
+                // On logout: preserve current cart for guest usage
+                const currentCart = cart.length > 0 ? cart : [];
+
+                // Remove backend-specific fields
+                const guestCart = currentCart.map(item => {
+                    const { cartItemId, ...guestItem } = item;
+                    return guestItem;
+                }) as CartItem[];
+
+                // Save to localStorage for guest session
+                if (guestCart.length > 0) {
+                    saveGuestCartToStorage(guestCart, STORAGE_KEYS.GUEST_CART);
+                    setCart(guestCart);
+                } else {
+                    setCart([]);
+                    localStorage.removeItem(STORAGE_KEYS.GUEST_CART);
+                }
+
+                // Reset merge refs and clear backend-specific data
                 cartMergedRef.current = false;
                 mergeInProgressRef.current = false;
-                // Clear backend state on logout, but keep local cart for guest users
-                setCart([]);
-                localStorage.removeItem('guest_cart');
                 setWishlist([]);
                 setOrders([]);
             }
         };
 
-        fetchUserData();
+        syncUserData();
     }, [user?.backendToken]);
 
     // Save guest cart to localStorage whenever it changes (for guests only)
     useEffect(() => {
         if (!user?.backendToken && cart.length > 0) {
-            localStorage.setItem('guest_cart', JSON.stringify(cart));
+            saveGuestCartToStorage(cart, STORAGE_KEYS.GUEST_CART);
         }
     }, [cart, user?.backendToken]);
 
     const addToCart = async (product: Product) => {
-        // Resolve the best price (sale_price > base_price > price)
-        let resolvedPrice: number = 0;
+        const cartItem = prepareProductForCart(product);
+        const resolvedPrice = cartItem.price;
 
-        const getNum = (val: any): number | null => {
-            if (typeof val === 'number') return val;
-            if (typeof val === 'string' && !isNaN(parseFloat(val))) return parseFloat(val);
-            return null;
-        };
-
-        const salePrice = getNum(product.sale_price);
-        const basePrice = getNum(product.base_price);
-        const normalPrice = getNum(product.price);
-
-        if (salePrice !== null) {
-            resolvedPrice = salePrice;
-        } else if (basePrice !== null) {
-            resolvedPrice = basePrice;
-        } else if (normalPrice !== null) {
-            resolvedPrice = normalPrice;
-        } else if (typeof product.price === 'string') {
-            // Fallback for formatted strings like "₹1,499.00"
-            resolvedPrice = parseInt(product.price.replace(/[^0-9]/g, ''), 10) || 0;
-        }
-
-        const productWithPrice = {
-            ...product,
-            price: resolvedPrice,
-            image: product.image || product.featured_image || '' // Ensure image is set
-        };
-        logger.info('Action: Add to Cart', { productId: product.id, name: product.name, price: resolvedPrice });
+        logger.info('Action: Add to Cart', {
+            productId: product.id,
+            name: product.name,
+            price: resolvedPrice
+        });
 
         // Firebase Analytics
         firebaseAnalytics.logAddToCart(
@@ -256,35 +189,35 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         );
 
         if (user?.backendToken) {
+            // Authenticated user: sync with backend
             try {
-                const res = await api.post(API_ENDPOINTS.CART.ADD_ITEM, {
+                const request: AddToCartRequest = {
                     product_id: product.id,
                     quantity: 1,
-                    size: (product as any).selectedSize || 'M',
-                    variant_id: (product as any).variant_id
-                });
+                    size: cartItem.selectedSize,
+                    variant_id: cartItem.variant_id
+                };
 
-                // Get the real cartItemId from backend response
-                const newCartItemId = res.data?.item?.id;
+                const response = await api.post<AddToCartResponse>(
+                    API_ENDPOINTS.CART.ADD_ITEM,
+                    request
+                );
 
-                // Optimistic update correction
+                const newCartItemId = response.data?.item?.id;
+
+                // Update cart state
                 const updatedCart = [...cart];
-                const existingItemIndex = updatedCart.findIndex(item => item.id === product.id);
+                const existingIndex = updatedCart.findIndex(item => item.id === product.id);
 
-                if (existingItemIndex > -1) {
-                    updatedCart[existingItemIndex].quantity = (updatedCart[existingItemIndex].quantity || 0) + 1;
-                    // If it was missing cartItemId (rare race case), add it
-                    if (!updatedCart[existingItemIndex].cartItemId && newCartItemId) {
-                        updatedCart[existingItemIndex].cartItemId = newCartItemId;
+                if (existingIndex > -1) {
+                    updatedCart[existingIndex].quantity += 1;
+                    if (!updatedCart[existingIndex].cartItemId && newCartItemId) {
+                        updatedCart[existingIndex].cartItemId = newCartItemId;
                     }
                 } else {
-                    updatedCart.push({
-                        ...productWithPrice,
-                        quantity: 1,
-                        selectedSize: (product as any).selectedSize || 'M',
-                        cartItemId: newCartItemId // Store the backend ID
-                    } as CartItem);
+                    updatedCart.push({ ...cartItem, cartItemId: newCartItemId });
                 }
+
                 setCart(updatedCart);
 
                 logRocketService.logStateChange({
@@ -293,110 +226,130 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
                     newValue: { productId: product.id, cartItemCount: updatedCart.length },
                 });
             } catch (error) {
-                logger.error("Add to cart error", { error, productId: product.id });
+                logger.error('Add to cart error', { error, productId: product.id });
             }
         } else {
+            // Guest user: update local state only
             const updatedCart = [...cart];
             const existingItem = updatedCart.find(item => item.id === product.id);
-            if (existingItem) {
-                existingItem.quantity = (existingItem.quantity || 0) + 1;
-                setCart(updatedCart);
-            } else {
-                setCart([...cart, {
-                    ...productWithPrice,
-                    quantity: 1,
-                    selectedSize: (product as any).selectedSize || 'M',
-                    variant_id: (product as any).variant_id
-                } as CartItem]);
 
-                logRocketService.logStateChange({
-                    context: 'ShopContext',
-                    action: 'item_added_to_cart_guest',
-                    newValue: { productId: product.id, cartItemCount: cart.length + 1 },
-                });
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                updatedCart.push(cartItem);
             }
+
+            setCart(updatedCart);
+
+            logRocketService.logStateChange({
+                context: 'ShopContext',
+                action: 'item_added_to_cart_guest',
+                newValue: { productId: product.id, cartItemCount: updatedCart.length },
+            });
         }
+
         setIsCartOpen(true);
     };
 
     const updateCartItemQuantity = async (index: number, newQuantity: number) => {
-        if (newQuantity < 1) return; // Prevent quantity from going below 1
+        if (newQuantity < MIN_CART_QUANTITY) return;
 
-        const updatedCart = [...cart];
-        const item = updatedCart[index];
-
+        const item = cart[index];
         if (!item) return;
 
-        // Update locally first (optimistic update)
+        const originalItem = { ...item };
+
+        // Optimistic update
+        const updatedCart = [...cart];
         updatedCart[index] = { ...item, quantity: newQuantity };
         setCart(updatedCart);
 
         // Sync with backend if authenticated
         if (user?.backendToken && item.cartItemId) {
             try {
-                await api.put(API_ENDPOINTS.CART.UPDATE_ITEM(item.cartItemId), {
+                const request: UpdateCartItemRequest = {
                     quantity: newQuantity,
-                    size: item.selectedSize || 'M'
-                });
+                    size: item.selectedSize || DEFAULT_SIZE
+                };
+
+                await api.put(
+                    API_ENDPOINTS.CART.UPDATE_ITEM(item.cartItemId),
+                    request
+                );
             } catch (error) {
-                logger.error("Update cart quantity error", { error, productId: item.id });
+                logger.error('Update cart quantity error', { error, productId: item.id });
                 // Revert on error
-                updatedCart[index] = item;
-                setCart(updatedCart);
+                const revertedCart = [...cart];
+                revertedCart[index] = originalItem;
+                setCart(revertedCart);
             }
         }
     };
 
     const removeFromCart = async (index: number) => {
         const itemToRemove = cart[index];
-        if (itemToRemove) {
-            logger.info('Action: Remove from Cart', { productId: itemToRemove.id, name: itemToRemove.name });
+        if (!itemToRemove) return;
 
-            // Firebase Analytics
-            firebaseAnalytics.logEvent('remove_from_cart', {
-                currency: currency.code,
-                value: itemToRemove.price,
-                items: [{
-                    item_id: String(itemToRemove.id),
-                    item_name: itemToRemove.name
-                }]
-            });
+        logger.info('Action: Remove from Cart', {
+            productId: itemToRemove.id,
+            name: itemToRemove.name
+        });
 
-            if (user?.backendToken && itemToRemove.cartItemId) {
-                try {
-                    await api.delete(API_ENDPOINTS.CART.REMOVE_ITEM(itemToRemove.cartItemId));
-                } catch (error) {
-                    logger.error("Remove from cart error", { error, productId: itemToRemove.id });
-                }
-            }
-        }
+        // Firebase Analytics
+        firebaseAnalytics.logEvent('remove_from_cart', {
+            currency: currency.code,
+            value: itemToRemove.price,
+            items: [{
+                item_id: String(itemToRemove.id),
+                item_name: itemToRemove.name
+            }]
+        });
 
+        // Optimistic update
         const newCart = [...cart];
         newCart.splice(index, 1);
+        setCart(newCart);
+
+        // Sync with backend if authenticated
+        if (user?.backendToken && itemToRemove.cartItemId) {
+            try {
+                await api.delete(API_ENDPOINTS.CART.REMOVE_ITEM(itemToRemove.cartItemId));
+            } catch (error) {
+                logger.error('Remove from cart error', { error, productId: itemToRemove.id });
+                // Revert on error
+                const revertedCart = [...cart];
+                revertedCart.splice(index, 0, itemToRemove);
+                setCart(revertedCart);
+            }
+        }
 
         logRocketService.logStateChange({
             context: 'ShopContext',
             action: 'item_removed_from_cart',
-            newValue: { productId: itemToRemove?.id, cartItemCount: newCart.length },
+            newValue: { productId: itemToRemove.id, cartItemCount: newCart.length },
         });
-        setCart(newCart);
     };
 
     const clearCart = async () => {
+        const previousCount = cart.length;
+
         logger.info('Action: Clear Cart');
+
+        // Optimistic update
+        setCart([]);
+
         if (user?.backendToken) {
             try {
                 await api.delete(API_ENDPOINTS.CART.GET);
             } catch (error) {
-                logger.error("Clear cart error", { error });
+                logger.error('Clear cart error', { error });
             }
         }
-        setCart([]);
 
         logRocketService.logStateChange({
             context: 'ShopContext',
             action: 'cart_cleared',
-            previousValue: { cartItemCount: cart.length },
+            previousValue: { cartItemCount: previousCount },
         });
     };
 
@@ -404,9 +357,9 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         setOrders([order, ...orders]);
     };
 
-    const formatPrice = (amount: number) => {
+    const formatPrice = useCallback((amount: number) => {
         return `${currency.symbol}${amount.toLocaleString('en-IN')}`;
-    };
+    }, [currency.symbol]);
 
     const addToWishlist = async (product: Product) => {
         logger.info('Action: Add to Wishlist', { productId: product.id, name: product.name });
@@ -462,17 +415,17 @@ export const ShopProvider: React.FC<ShopProviderProps> = ({ children }) => {
         });
     };
 
-    const isInWishlist = (productId: string | number) => {
+    const isInWishlist = useCallback((productId: string | number) => {
         return wishlist.some(item => item.id === productId);
-    };
+    }, [wishlist]);
 
-    const toggleWishlist = (product: Product) => {
+    const toggleWishlist = useCallback((product: Product) => {
         if (isInWishlist(product.id)) {
             removeFromWishlist(product.id);
         } else {
             addToWishlist(product);
         }
-    };
+    }, [isInWishlist]);
 
 
 
