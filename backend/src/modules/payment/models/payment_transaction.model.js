@@ -48,7 +48,7 @@ const PaymentTransaction = sequelize.define('PaymentTransaction', {
     },
 }, {
     tableName: 'payment_transactions',
-    tableName: 'payment_transactions',
+
     timestamps: false,
 });
 

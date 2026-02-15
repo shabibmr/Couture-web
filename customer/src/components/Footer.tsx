@@ -30,7 +30,7 @@ const Footer: React.FC = () => {
 
     return (
         <footer className="bg-stone-200 text-stone-600 py-16 px-6 relative z-10 text-xs md:text-sm">
-            <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
 
                 {/* Brand Column */}
                 <div className="space-y-6">
@@ -43,16 +43,7 @@ const Footer: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Shop Column */}
-                <div>
-                    <h3 className="text-stone-900 font-medium uppercase tracking-widest text-xs mb-6">Shop</h3>
-                    <ul className="space-y-4 font-light text-stone-600">
-                        <li><Link to="/shop" className="hover:text-ruvera-gold transition-colors">New Arrivals</Link></li>
-                        <li><Link to="/shop" className="hover:text-ruvera-gold transition-colors">Men</Link></li>
-                        <li><Link to="/shop" className="hover:text-ruvera-gold transition-colors">Women</Link></li>
-                        <li><Link to="/shop" className="hover:text-ruvera-gold transition-colors">Accessories</Link></li>
-                    </ul>
-                </div>
+
 
                 {/* Service Column */}
                 <div>

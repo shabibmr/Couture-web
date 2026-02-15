@@ -50,7 +50,7 @@ export const getAllPayments = async (req, res) => {
                 },
                 { model: PaymentGateway, attributes: ['name'] }
             ],
-            order: [['created_at', 'DESC']],
+            order: [['payment_date', 'DESC']],
             distinct: true
         });
 

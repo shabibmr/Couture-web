@@ -28,6 +28,7 @@ const router = express.Router();
 
 // Shipping calculation endpoint (no auth required for preview)
 router.get('/shipping/calculate', calculateShipping);
+router.get('/calculate-shipping', calculateShipping);
 
 // ==================== AUTHENTICATED ROUTES ====================
 

@@ -1,35 +1,51 @@
 -- Coupon Module Enhancements Migration (MySQL)
--- Run this script to add new coupon features
 
--- Add new columns to coupons table
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_single_use BOOLEAN DEFAULT FALSE;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS per_customer_limit INT NULL;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_first_order_only BOOLEAN DEFAULT FALSE;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS max_discount_amount DECIMAL(10,2) NULL;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS min_quantity INT DEFAULT 1;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS applies_to VARCHAR(20) DEFAULT 'all';
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS applicable_product_ids JSON NULL;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS applicable_category_ids JSON NULL;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS allowed_customer_ids JSON NULL;
-ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_stackable BOOLEAN DEFAULT TRUE;
+-- 1. Add coupon_code to orders (Fixes "Error initiating payment")
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(100) NULL AFTER coupon_id;
 
--- Update discount_type enum to include free_shipping
--- Note: MySQL requires recreating the column to add enum values
--- First check current values, then run if needed:
--- ALTER TABLE coupons MODIFY COLUMN discount_type ENUM('percentage', 'fixed', 'bogo', 'free_shipping') NOT NULL;
+-- 2. Add missing columns to coupons (Fixes "Server error" on coupon validate)
+-- Using individual ALTER statements for safety if some columns already exist
 
--- Create coupon_usages table for tracking per-customer usage
-CREATE TABLE IF NOT EXISTS coupon_usages (
-    id CHAR(36) PRIMARY KEY,
-    coupon_id CHAR(36) NOT NULL,
-    customer_id CHAR(36) NOT NULL,
-    order_id CHAR(36) NULL,
-    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
-);
+-- min_product_price
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS min_product_price DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'Minimum price of a single product to qualify';
 
--- Create index for fast coupon usage lookups
-CREATE INDEX idx_coupon_usage_lookup ON coupon_usages(coupon_id, customer_id);
+-- is_single_use
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_single_use TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'One-time use per customer';
+
+-- per_customer_limit
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS per_customer_limit INT NULL COMMENT 'Max uses per customer (null = unlimited)';
+
+-- is_first_order_only
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_first_order_only TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Only valid for first-time customers';
+
+-- max_discount_amount
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS max_discount_amount DECIMAL(10,2) NULL COMMENT 'Cap for percentage discounts';
+
+-- min_quantity
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS min_quantity INT NOT NULL DEFAULT 1 COMMENT 'Minimum cart items required';
+
+-- applies_to
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS applies_to ENUM('all','products','categories') NOT NULL DEFAULT 'all';
+
+-- applicable_product_ids
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS applicable_product_ids JSON NULL COMMENT 'Array of targeted product IDs';
+
+-- applicable_category_ids
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS applicable_category_ids JSON NULL COMMENT 'Array of targeted category IDs';
+
+-- is_private
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_private TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Private code for specific users only';
+
+-- allowed_customer_ids
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS allowed_customer_ids JSON NULL COMMENT 'Array of allowed customer IDs';
+
+-- is_stackable
+ALTER TABLE coupons ADD COLUMN IF NOT EXISTS is_stackable TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Can be combined with other coupons';
+
+-- 3. Modify discount_type enum to include free_shipping
+-- Note: This might fail if the column is already correct, but in MySQL modifying an enum to add a value is generally safe if the current values are valid.
+-- However, IF NOT EXISTS doesn't work for MODIFY COLUMN.
+-- We will attempt it. If it fails, it might be because of strict mode or existing constraints, but strictly speaking this command updates the enum definition.
+ALTER TABLE coupons MODIFY COLUMN discount_type ENUM('percentage', 'fixed', 'bogo', 'free_shipping') NOT NULL;
+
+
