@@ -27,6 +27,7 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 
 import ScrollToTop from './components/ScrollToTop';
+import WhatsAppButton from './components/WhatsAppButton';
 
 // Navigation tracker component
 const NavigationTracker: React.FC = () => {
@@ -67,6 +68,7 @@ const App: React.FC = () => {
           <BrowserRouter>
             <ScrollToTop />
             <NavigationTracker />
+            <WhatsAppButton />
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<HomePage />} />
